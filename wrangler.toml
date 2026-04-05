@@ -1,0 +1,31 @@
+name = "ai-media-team"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Objects
+[[durable_objects.bindings]]
+name = "WORKFLOW"
+class_name = "WorkflowStateDO"
+
+# Workers KV for caching
+[[kv_namespaces]]
+binding = "CACHE"
+id = "8f2d43da6b7c4bffb4fb83649e385690"
+
+# Observability for debugging
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# Migrations for Durable Objects
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = [ "WorkflowStateDO" ]
+
+# Env vars (set via wrangler secret)
+# MINIMAX_API_KEY
+# DISCORD_BOT_TOKEN
+# GITHUB_TOKEN
+# GITHUB_REPO
+# EXA_API_KEY
