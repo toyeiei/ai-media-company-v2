@@ -126,7 +126,8 @@ Provide an improved version.`;
 // ---------------------------------------------------------------------------
 
 function formatDate(): string {
-  return new Date().toISOString().split('T')[0];
+  const iso = new Date().toISOString();
+  return iso ? iso.split('T')[0] : '2026-01-01';
 }
 
 async function publish(topic: string, finalBlog: string, socialPosts: string, env: Env): Promise<string> {
