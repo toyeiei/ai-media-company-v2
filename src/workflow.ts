@@ -36,11 +36,11 @@ export function parseSocialPosts(
 // Prompt Templates
 // ---------------------------------------------------------------------------
 
-const RESEARCH_PROMPT = `Research the following topic thoroughly. Find key facts, statistics, recent developments, and interesting angles. Format your response with clear sections.
+const RESEARCH_PROMPT = `Research the following topic thoroughly. Find key facts, statistics, recent developments, and interesting angles.
 
 Topic: {topic}
 
-**CRITICAL: Keep the summary under 1600 characters. Be concise and focused.**`;
+**CRITICAL: Keep the summary under 1600 characters and 250 words max. Be concise and focused.**`;
 
 const RESEARCH_WITH_EXA_PROMPT = `You are a research analyst. Based on the following web search results, create a concise research summary for a blog post.
 
@@ -49,7 +49,7 @@ Search Results:
 
 Topic: {topic}
 
-**CRITICAL: Keep the summary under 1600 characters. Be concise and focused.**
+**CRITICAL: Keep the summary under 1600 characters and 250 words max. Be concise and focused.**
 
 Provide:
 - Key findings (bullet list)
@@ -64,13 +64,13 @@ Topic: {topic}
 Research:
 {research}
 
-**CRITICAL: Keep the draft under 1600 characters. Be concise and focused.**
+**CRITICAL: Keep the draft under 1600 characters and 300 words max. Be concise and focused.**
 
 Write a compelling, well-structured blog post draft with an engaging title, introduction, main body with 3-5 key points, and a conclusion.`;
 
 const EDIT_PROMPT = `You are a senior editor reviewing a blog post draft. Review and critique the following draft. Provide specific, actionable suggestions for improvement.
 
-**CRITICAL: Keep the critique under 1600 characters. Be concise and focused.**
+**CRITICAL: Keep the critique under 1600 characters and 250 words max. Be concise and focused.**
 
 Focus on:
 - Clarity and readability
@@ -90,7 +90,7 @@ Topic: {topic}
 Edited draft:
 {edited}
 
-**CRITICAL: Keep the blog post under 1600 characters. Be concise and focused.**
+**CRITICAL: Keep the blog post under 1600 characters and 300 words max. Be concise and focused.**
 
 Return only the final polished blog post.`;
 
@@ -99,12 +99,12 @@ const SOCIAL_PROMPT = `You are a social media strategist. Create social media po
 Blog post:
 {blog}
 
-**CRITICAL: Keep each post under 1600 characters total. Be concise.**
+**CRITICAL: Keep total output under 1600 characters.**
 
 Create posts for:
-1. Facebook - engaging, community-focused, up to 500 characters with relevant hashtags
+1. Facebook - engaging, community-focused, up to 300 characters with relevant hashtags
 2. X/Twitter - punchy, conversational, up to 280 characters with relevant hashtags
-3. LinkedIn - professional, thought-leadership focused, up to 1300 characters with relevant hashtags
+3. LinkedIn - professional, thought-leadership focused, up to 1000 characters with relevant hashtags
 
 Format as:
 **Facebook:**
