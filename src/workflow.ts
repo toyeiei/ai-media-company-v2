@@ -56,6 +56,15 @@ Write a blog post with:
 
 Aim for 200 words.`;
 
+const EDIT_PROMPT = `You are a senior editor. Review the draft below and provide 3-5 clear, actionable revision tips.
+
+**CRITICAL: Keep your tips under 1200 characters total. Be concise.**
+
+Draft:
+{draft}
+
+Provide 3-5 specific, actionable tips to improve clarity, engagement, and impact. Use bullet points.`;
+
 const FINAL_PROMPT = `You are a professional content editor. Polish the following blog post into a final, publication-ready version.
 
 Topic: {topic}
