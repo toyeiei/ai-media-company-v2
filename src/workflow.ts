@@ -74,21 +74,14 @@ Research:
 
 Write a compelling, well-structured blog post draft with an engaging title, introduction, main body with 3-5 key points, and a conclusion.`;
 
-const EDIT_PROMPT = `You are a senior editor reviewing a blog post draft. Review and critique the following draft. Provide specific, actionable suggestions for improvement.
+const EDIT_PROMPT = `You are a senior editor. Review the draft below and provide 3-5 clear, actionable revision tips.
 
-**CRITICAL: Keep the critique under 1600 characters and 250 words max. Be concise and focused.**
-
-Focus on:
-- Clarity and readability
-- Engagement and flow
-- Factual accuracy
-- SEO optimization opportunities
-- Missing angles or perspectives
+**CRITICAL: Keep your tips under 1200 characters total. Be concise.**
 
 Draft:
 {draft}
 
-Provide your critique and suggested improvements.`;
+Provide 3-5 specific, actionable tips to improve clarity, engagement, and impact. Use bullet points.`;
 
 const FINAL_PROMPT = `You are a professional content editor. Polish the following blog post into a final, publication-ready version.
 
@@ -229,7 +222,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
     // EDIT - NO RETRIES, runs once
     await postToChannel(channels.edit, '🔍 **Edit Phase** - Reviewing...', botToken);
-    const edited = await miniMax.chat([{ role: 'user', content: EDIT_PROMPT.replace('{draft}', draft) }], { maxTokens: 1600 });
+    const edited = await miniMax.chat([{ role: 'user', content: EDIT_PROMPT.replace('{draft}', draft) }], { maxTokens: 1200 });
     await postToChannel(channels.edit, `✅ **Edit Phase Complete**\n\n${edited}`, botToken);
 
     // FINAL - NO RETRIES, runs once
