@@ -127,7 +127,7 @@ export async function findInstanceIdInThread(threadId: string, botToken: string)
   return match || null;
 }
 
-function truncate(text: string, max: number): string {
+export function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 50) + '...\n\n_(truncated)_';
 }
