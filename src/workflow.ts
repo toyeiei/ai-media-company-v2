@@ -234,7 +234,6 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     // SOCIAL - NO RETRIES, runs once
     await postToChannel(channels.social, '📱 **Social Phase** - Creating posts...', botToken);
     const socialContent = await miniMax.chat([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1600 });
-    });
     const { facebook, twitter, linkedin } = parseSocialPosts(socialContent);
     
     await postToChannel(channels.social, `✅ **Social Phase Complete**\n\n**Facebook:**\n${facebook}`, botToken);
