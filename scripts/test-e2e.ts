@@ -65,26 +65,20 @@ Revision tips:
 
 Return only the final polished blog post.`;
 
-const FACEBOOK_PROMPT = `You are a social media strategist. Write a Facebook post based on this blog post.
+const FACEBOOK_PROMPT = `Convert this blog post into a Facebook post. Be conversational, friendly, and engaging. Include an emoji or two and a call to action. Keep it under 500 characters.
 
 Blog post:
-{blog}
+{blog}`;
 
-**CRITICAL: Keep it under 320 characters. Make it engaging and include a call to action if appropriate.**`;
-
-const TWITTER_PROMPT = `You are a social media strategist. Write an X/Twitter post based on this blog post.
+const TWITTER_PROMPT = `Convert this blog post into a punchy X/Twitter post. Be bold, concise, and use trending language if appropriate. Keep it under 500 characters.
 
 Blog post:
-{blog}
+{blog}`;
 
-**CRITICAL: Keep it under 280 characters. Make it punchy and engaging.**`;
-
-const LINKEDIN_PROMPT = `You are a social media strategist. Write a LinkedIn post based on this blog post.
+const LINKEDIN_PROMPT = `Convert this blog post into a LinkedIn post. Be professional, insightful, and authoritative. Share a key takeaway or perspective. Keep it under 1000 characters.
 
 Blog post:
-{blog}
-
-**CRITICAL: Keep it under 900 characters. Make it professional and insightful.**`;
+{blog}`;
 
 function assertNotEmpty(value: string, step: string): void {
   if (!value || value.trim().length === 0) {
@@ -214,7 +208,7 @@ async function runE2ETest(): Promise<void> {
     const twitter = await miniMax.chat([{
       role: 'user',
       content: TWITTER_PROMPT.replace('{blog}', finalBlog),
-    }], { maxTokens: 400 });
+    }], { maxTokens: 500 });
     
     assertNotEmpty(twitter, 'X/Twitter');
     socialResults.push({ step: 'X/Twitter', passed: true, duration: Date.now() - twStart, output: twitter });
