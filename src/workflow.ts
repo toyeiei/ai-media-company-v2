@@ -38,7 +38,9 @@ export function parseSocialPosts(
 
 const RESEARCH_PROMPT = `Research the following topic thoroughly. Find key facts, statistics, recent developments, and interesting angles. Format your response with clear sections.
 
-Topic: {topic}`;
+Topic: {topic}
+
+**CRITICAL: Keep the summary under 1600 characters. Be concise and focused.**`;
 
 const RESEARCH_WITH_EXA_PROMPT = `You are a research analyst. Based on the following web search results, create a concise research summary for a blog post.
 
@@ -47,7 +49,7 @@ Search Results:
 
 Topic: {topic}
 
-**CRITICAL: Keep the summary under 1900 characters. Be concise and focused.**
+**CRITICAL: Keep the summary under 1600 characters. Be concise and focused.**
 
 Provide:
 - Key findings (bullet list)
@@ -62,9 +64,13 @@ Topic: {topic}
 Research:
 {research}
 
+**CRITICAL: Keep the draft under 1600 characters. Be concise and focused.**
+
 Write a compelling, well-structured blog post draft with an engaging title, introduction, main body with 3-5 key points, and a conclusion.`;
 
 const EDIT_PROMPT = `You are a senior editor reviewing a blog post draft. Review and critique the following draft. Provide specific, actionable suggestions for improvement.
+
+**CRITICAL: Keep the critique under 1600 characters. Be concise and focused.**
 
 Focus on:
 - Clarity and readability
@@ -84,7 +90,7 @@ Topic: {topic}
 Edited draft:
 {edited}
 
-Create a clean, final version. **CRITICAL: The entire blog post must be between 150-180 words.**
+**CRITICAL: Keep the blog post under 1600 characters. Be concise and focused.**
 
 Return only the final polished blog post.`;
 
@@ -92,6 +98,8 @@ const SOCIAL_PROMPT = `You are a social media strategist. Create social media po
 
 Blog post:
 {blog}
+
+**CRITICAL: Keep each post under 1600 characters total. Be concise.**
 
 Create posts for:
 1. Facebook - engaging, community-focused, up to 500 characters with relevant hashtags
@@ -142,15 +150,15 @@ async function runRevision(
   botToken: string,
   miniMax: MiniMaxClient,
 ): Promise<{ edited: string; finalBlog: string; socialPosts: string }> {
-  // Post progress OUTSIDE step.do() to avoid retries
+  // Post progress OUTSIDE step.do() - NO RETRIES, runs once
   await postToChannel(channels.edit, `🔍 **Edit Phase (Revised)** - Revising...`, botToken);
-  const edited = await stepDoWithRetry('revise-edit', async () => miniMax.chatWithRetry([{ role: 'user', content: REVISE_EDIT_PROMPT.replace('{topic}', topic).replace('{current}', currentBlog) }], { maxTokens: 2048 }));
+  const edited = await miniMax.chat([{ role: 'user', content: REVISE_EDIT_PROMPT.replace('{topic}', topic).replace('{current}', currentBlog) }], { maxTokens: 1600 });
 
   await postToChannel(channels.final, `✨ **Final Phase (Revised)** - Polishing...`, botToken);
-  const finalBlog = await stepDoWithRetry('revise-final', async () => miniMax.chatWithRetry([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited) }], { maxTokens: 2048 }));
+  const finalBlog = await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited) }], { maxTokens: 1600 });
 
   await postToChannel(channels.social, `📱 **Social Phase (Revised)** - Updating...`, botToken);
-  const socialContent = await stepDoWithRetry('revise-social', async () => miniMax.chatWithRetry([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 2048 }));
+  const socialContent = await miniMax.chat([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1600 });
   
   const { facebook, twitter, linkedin } = parseSocialPosts(socialContent);
   await postToChannel(channels.social, `✅ **Social Posts Updated**\n\n**Facebook:**\n${facebook}`, botToken);
@@ -160,27 +168,6 @@ async function runRevision(
   const socialPosts = JSON.stringify({ facebook, twitter, linkedin });
   await sendApprovalMessage(channels.final, finalBlog, socialPosts, botToken);
   return { edited, finalBlog, socialPosts };
-}
-
-// Helper to wrap step.do() with retry - work is retried, not messages
-async function stepDoWithRetry<T>(name: string, fn: () => Promise<T>): Promise<T> {
-  // We use a simple retry wrapper here since Cloudflare step.do() retries the whole block
-  // This separates the concern: progress messages are posted outside, work can be retried
-  let lastError: Error | undefined;
-  for (let i = 0; i < 3; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastError = err as Error;
-      if (i < 2) await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
-    }
-  }
-  throw lastError;
-}
-
-// Simple AI call without progress posting (progress posted separately to avoid retries)
-async function aiChat(miniMax: MiniMaxClient, prompt: string): Promise<string> {
-  return await miniMax.chatWithRetry([{ role: 'user', content: prompt }], { maxTokens: 2048 });
 }
 
 // ---------------------------------------------------------------------------
@@ -200,7 +187,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     const miniMax = new MiniMaxClient(this.env.MINIMAX_API_KEY);
     const botToken = this.env.DISCORD_BOT_TOKEN;
 
-    // RESEARCH - progress posted OUTSIDE step.do() to avoid retries posting duplicates
+    // RESEARCH - NO RETRIES, runs once
     await postToChannel(channels.research, '🔍 **Research Phase** - Searching the web...', botToken);
     
     let research: string;
@@ -211,20 +198,16 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       await postToChannel(channels.research, `🔍 **Research Phase** - Found ${results.length} results. Generating summary...`, botToken);
       
       const summary = await summarizeSearchResults(results);
-      research = await step.do('research-ai', async () => {
-        return await miniMax.chatWithRetry([{
-          role: 'user',
-          content: RESEARCH_WITH_EXA_PROMPT.replace('{summary}', summary).replace('{topic}', topic),
-        }], { maxTokens: 2048 });
-      });
+      research = await miniMax.chat([{
+        role: 'user',
+        content: RESEARCH_WITH_EXA_PROMPT.replace('{summary}', summary).replace('{topic}', topic),
+      }], { maxTokens: 1600 });
     } else {
       await postToChannel(channels.research, '🔍 **Research Phase** - No EXA_API_KEY, using MiniMax directly...', botToken);
-      research = await step.do('research-minimax', async () => {
-        return await miniMax.chatWithRetry([{
-          role: 'user',
-          content: RESEARCH_PROMPT.replace('{topic}', topic),
-        }], { maxTokens: 2048 });
-      });
+      research = await miniMax.chat([{
+        role: 'user',
+        content: RESEARCH_PROMPT.replace('{topic}', topic),
+      }], { maxTokens: 1600 });
     }
     
     if (this.env.CACHE) {
@@ -233,31 +216,24 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     }
     await postToChannel(channels.research, `✅ **Research Phase Complete**\n\n${research}`, botToken);
 
-    // DRAFT
+    // DRAFT - NO RETRIES, runs once
     await postToChannel(channels.draft, '✍️ **Draft Phase** - Writing...', botToken);
-    const draft = await step.do('draft', async () => {
-      return await miniMax.chatWithRetry([{ role: 'user', content: DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 2048 });
-    });
+    const draft = await miniMax.chat([{ role: 'user', content: DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 1600 });
     await postToChannel(channels.draft, `✅ **Draft Phase Complete**\n\n${draft}`, botToken);
 
-    // EDIT
+    // EDIT - NO RETRIES, runs once
     await postToChannel(channels.edit, '🔍 **Edit Phase** - Reviewing...', botToken);
-    const edited = await step.do('edit', async () => {
-      return await miniMax.chatWithRetry([{ role: 'user', content: EDIT_PROMPT.replace('{draft}', draft) }], { maxTokens: 2048 });
-    });
+    const edited = await miniMax.chat([{ role: 'user', content: EDIT_PROMPT.replace('{draft}', draft) }], { maxTokens: 1600 });
     await postToChannel(channels.edit, `✅ **Edit Phase Complete**\n\n${edited}`, botToken);
 
-    // FINAL
+    // FINAL - NO RETRIES, runs once
     await postToChannel(channels.final, '✨ **Final Phase** - Polishing...', botToken);
-    const finalBlog = await step.do('final', async () => {
-      return await miniMax.chatWithRetry([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited) }], { maxTokens: 2048 });
-    });
+    const finalBlog = await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited) }], { maxTokens: 1600 });
     await postToChannel(channels.final, `✅ **Final Phase Complete**\n\n${finalBlog}`, botToken);
 
-    // SOCIAL
+    // SOCIAL - NO RETRIES, runs once
     await postToChannel(channels.social, '📱 **Social Phase** - Creating posts...', botToken);
-    const socialContent = await step.do('social', async () => {
-      return await miniMax.chatWithRetry([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 2048 });
+    const socialContent = await miniMax.chat([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1600 });
     });
     const { facebook, twitter, linkedin } = parseSocialPosts(socialContent);
     
