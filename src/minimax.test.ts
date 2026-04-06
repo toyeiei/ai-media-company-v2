@@ -13,7 +13,7 @@ describe('MiniMaxClient', () => {
       expect(client).toBeDefined();
     });
 
-    it('should use MiniMax-Text-01 as default model', () => {
+    it('should use MiniMax-M2.7 as default model', () => {
       const client = new MiniMaxClient('test-api-key');
       expect(client).toBeDefined();
     });
@@ -101,7 +101,7 @@ describe('MiniMaxClient', () => {
       await client.chat([{ role: 'user', content: 'Hello' }], { temperature: 0.9 });
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://api.minimax.chat/v1/text/chatcompletion_v2',
+        'https://api.minimax.io/v1/text/chatcompletion_v2',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
@@ -130,7 +130,7 @@ describe('MiniMaxClient', () => {
       await client.chat([{ role: 'user', content: 'Hello' }], { maxTokens: 1024 });
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://api.minimax.chat/v1/text/chatcompletion_v2',
+        'https://api.minimax.io/v1/text/chatcompletion_v2',
         expect.objectContaining({
           body: expect.stringContaining('"max_tokens":1024'),
         }),

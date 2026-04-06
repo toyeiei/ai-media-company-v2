@@ -26,8 +26,16 @@ export async function postToThread(threadId: string, content: string, botToken: 
   });
 }
 
+export async function postToChannel(channelId: string, content: string, botToken: string): Promise<void> {
+  await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bot ${botToken}` },
+    body: JSON.stringify({ content }),
+  });
+}
+
 export async function sendApprovalMessage(
-  threadId: string,
+  channelId: string,
   finalBlog: string,
   socialPosts: string,
   botToken: string,
@@ -41,7 +49,7 @@ export async function sendApprovalMessage(
   content += `**X/Twitter:** ${truncate(posts.twitter || 'N/A', 200)}\n`;
   content += `**LinkedIn:** ${truncate(posts.linkedin || 'N/A', 300)}\n`;
 
-  await fetch(`https://discord.com/api/v10/channels/${threadId}/messages`, {
+  await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bot ${botToken}` },
     body: JSON.stringify({

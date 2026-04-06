@@ -1,5 +1,5 @@
-import { createThread, postInstanceId, findInstanceIdInThread } from './discord';
-import type { Env } from './env';
+import { postToChannel, postInstanceId, findInstanceIdInThread } from './discord';
+import type { Env, WorkflowChannels } from './env';
 import type { DiscordInteraction } from './discord';
 
 export { type DiscordInteraction };
@@ -32,31 +32,46 @@ export class DiscordSlashHandler {
     const userId = body.member?.user.id || 'unknown';
     const topic = body.data?.options?.find((o: { name: string; value: string }) => o.name === 'topic')?.value || '';
 
-    if (!topic) return this.ephemeral('Usage: `/create topic: <your blog topic>`');
+    if (!topic) {
+      return this.ephemeral('Usage: `/create topic: <your blog topic>`');
+    }
 
-    const threadId = await createThread(this.env.DISCORD_CHANNEL_ID, topic, this.env.DISCORD_BOT_TOKEN);
-    if (!threadId) return this.ephemeral('Failed to create thread. Check channel permissions.');
+    const channels: WorkflowChannels = {
+      research: this.env.RESEARCH_CHANNEL_ID,
+      draft: this.env.DRAFT_CHANNEL_ID,
+      edit: this.env.EDIT_CHANNEL_ID,
+      final: this.env.FINAL_CHANNEL_ID,
+      social: this.env.SOCIAL_CHANNEL_ID,
+    };
 
     const instanceId = `workflow-${userId}-${Date.now()}`;
-    await this.env.CONTENT_WORKFLOW.create({ id: instanceId, params: { topic, userId, threadId } });
-    await postInstanceId(threadId, instanceId, this.env.DISCORD_BOT_TOKEN);
+    await this.env.CONTENT_WORKFLOW.create({ id: instanceId, params: { topic, userId, channels } });
 
-    return { type: 4, data: { content: `Workflow started in thread: <#${threadId}>` } };
+    // Post workflow start to all channels
+    const startMsg = `🚀 **Workflow started:** ${topic}\nWorkflow ID: \`${instanceId}\``;
+    await postToChannel(this.env.RESEARCH_CHANNEL_ID, startMsg, this.env.DISCORD_BOT_TOKEN);
+
+    // Post instance ID to research channel for tracking
+    await postInstanceId(this.env.RESEARCH_CHANNEL_ID, instanceId, this.env.DISCORD_BOT_TOKEN);
+
+    return { type: 4, data: { content: 'Workflow started! Check the pipeline channels: #research, #draft, #edit, #final, #social' } };
   }
 
   private handleStatus(): { type: number; data: Record<string, unknown> } {
-    return this.ephemeral('Check the thread for the latest workflow status. The workflow posts progress updates as it runs.');
+    return this.ephemeral('Check the pipeline channels for the latest workflow status. Each channel shows its respective stage.');
   }
 
   private handleCancel(): { type: number; data: Record<string, unknown> } {
-    return this.ephemeral('To cancel, archive the thread. The workflow times out after 24 hours if not approved.');
+    return this.ephemeral('To cancel, the workflow will timeout after 24 hours if not approved.');
   }
 
   private async handleApprove(body: DiscordInteraction): Promise<{ type: number; data?: Record<string, unknown> }> {
-    const threadId = body.channel_id || '';
-    const instanceId = await findInstanceIdInThread(threadId, this.env.DISCORD_BOT_TOKEN);
+    const channelId = body.channel_id || '';
+    const instanceId = await findInstanceIdInThread(channelId, this.env.DISCORD_BOT_TOKEN);
 
-    if (!instanceId) return this.ephemeral('Could not find workflow instance.');
+    if (!instanceId) {
+      return this.ephemeral('Could not find workflow instance. Make sure you are in the #final channel.');
+    }
 
     try {
       const instance = await this.env.CONTENT_WORKFLOW.get(instanceId);
@@ -68,10 +83,12 @@ export class DiscordSlashHandler {
   }
 
   private async handleRevise(body: DiscordInteraction): Promise<{ type: number; data?: Record<string, unknown> }> {
-    const threadId = body.channel_id || '';
-    const instanceId = await findInstanceIdInThread(threadId, this.env.DISCORD_BOT_TOKEN);
+    const channelId = body.channel_id || '';
+    const instanceId = await findInstanceIdInThread(channelId, this.env.DISCORD_BOT_TOKEN);
 
-    if (!instanceId) return this.ephemeral('Could not find workflow instance.');
+    if (!instanceId) {
+      return this.ephemeral('Could not find workflow instance. Make sure you are in the #final channel.');
+    }
 
     try {
       const instance = await this.env.CONTENT_WORKFLOW.get(instanceId);

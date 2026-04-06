@@ -16,7 +16,11 @@ describe('DiscordSlashHandler', () => {
       DISCORD_PUBLIC_KEY: 'discord-public-key',
       GITHUB_TOKEN: 'github-token',
       GITHUB_REPO: 'owner/repo',
-      DISCORD_CHANNEL_ID: 'ch-create',
+      RESEARCH_CHANNEL_ID: 'ch-research',
+      DRAFT_CHANNEL_ID: 'ch-draft',
+      EDIT_CHANNEL_ID: 'ch-edit',
+      FINAL_CHANNEL_ID: 'ch-final',
+      SOCIAL_CHANNEL_ID: 'ch-social',
       CONTENT_WORKFLOW: {
         create: vi.fn(),
         get: vi.fn(),
@@ -72,12 +76,10 @@ describe('DiscordSlashHandler', () => {
     const env = makeEnv();
     const handler = new DiscordSlashHandler(env);
 
-    // Mock Discord API: thread creation
-    const threadResponse = { channel_id: 'thread-123', id: 'thread-123' };
+    // Mock Discord API: post to research channel (start message + instance ID)
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(threadResponse), { status: 200 }),
+      new Response('{}', { status: 200 }),
     );
-    // Mock: post instance ID message
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response('{}', { status: 200 }),
     );
@@ -103,7 +105,13 @@ describe('DiscordSlashHandler', () => {
       params: {
         topic: 'AI in 2026',
         userId: 'user-123',
-        threadId: 'thread-123',
+        channels: {
+          research: 'ch-research',
+          draft: 'ch-draft',
+          edit: 'ch-edit',
+          final: 'ch-final',
+          social: 'ch-social',
+        },
       },
     });
   });
@@ -120,7 +128,7 @@ describe('DiscordSlashHandler', () => {
     } satisfies DiscordInteraction);
 
     expect(response.type).toBe(4);
-    expect((response.data as any).content).toContain('Check the thread');
+    expect((response.data as any).content).toContain('pipeline channels');
   });
 
   it('handleCancel returns help message', async () => {

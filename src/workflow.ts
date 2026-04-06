@@ -2,8 +2,8 @@ import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:work
 import { MiniMaxClient } from './minimax';
 import { GitHubClient, generateBlogMarkdown } from './github';
 import { searchWeb, summarizeSearchResults } from './exa';
-import { postToThread, sendApprovalMessage } from './discord';
-import type { Env } from './env';
+import { postToChannel, sendApprovalMessage } from './discord';
+import type { Env, WorkflowChannels } from './env';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -12,7 +12,7 @@ import type { Env } from './env';
 export interface WorkflowParams {
   topic: string;
   userId: string;
-  threadId: string;
+  channels: WorkflowChannels;
 }
 
 export interface ApprovalPayload {
@@ -142,15 +142,15 @@ async function publish(topic: string, finalBlog: string, socialPosts: string, en
 async function runRevision(
   topic: string,
   currentBlog: string,
-  threadId: string,
+  channels: WorkflowChannels,
   botToken: string,
   miniMax: MiniMaxClient,
 ): Promise<{ edited: string; finalBlog: string; socialPosts: string }> {
-  const edited = await runAiStep(miniMax, 'revise-edit', `**REVISE - EDIT** - Revising...`, REVISE_EDIT_PROMPT.replace('{topic}', topic).replace('{current}', currentBlog), threadId, botToken);
-  const finalBlog = await runAiStep(miniMax, 'revise-final', `**REVISE - FINAL** - Polishing...`, FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited), threadId, botToken);
-  const socialContent = await runAiStep(miniMax, 'revise-social', `**REVISE - SOCIAL** - Updating...`, SOCIAL_PROMPT.replace('{blog}', finalBlog), threadId, botToken);
+  const edited = await runAiStep(miniMax, 'revise-edit', `**REVISE - EDIT** - Revising...`, REVISE_EDIT_PROMPT.replace('{topic}', topic).replace('{current}', currentBlog), channels.edit, botToken);
+  const finalBlog = await runAiStep(miniMax, 'revise-final', `**REVISE - FINAL** - Polishing...`, FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited), channels.final, botToken);
+  const socialContent = await runAiStep(miniMax, 'revise-social', `**REVISE - SOCIAL** - Updating...`, SOCIAL_PROMPT.replace('{blog}', finalBlog), channels.social, botToken);
   const socialPosts = JSON.stringify(parseSocialPosts(socialContent));
-  await sendApprovalMessage(threadId, finalBlog, socialPosts, botToken);
+  await sendApprovalMessage(channels.final, finalBlog, socialPosts, botToken);
   return { edited, finalBlog, socialPosts };
 }
 
@@ -159,10 +159,10 @@ async function runAiStep(
   name: string,
   progress: string,
   prompt: string,
-  threadId: string,
+  channelId: string,
   botToken: string,
 ): Promise<string> {
-  await postToThread(threadId, progress, botToken);
+  await postToChannel(channelId, progress, botToken);
   return await miniMax.chatWithRetry([{ role: 'user', content: prompt }], { maxTokens: 2048 });
 }
 
@@ -172,27 +172,45 @@ async function runAiStep(
 
 export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
-    const { topic, threadId } = event.payload;
+    const { topic, channels } = event.payload;
+    
+    // Check if MINIMAX_API_KEY is configured
+    if (!this.env.MINIMAX_API_KEY) {
+      await postToChannel(channels.research, '❌ **ERROR**: MINIMAX_API_KEY not configured. Please set it via `wrangler secret put MINIMAX_API_KEY`', this.env.DISCORD_BOT_TOKEN);
+      throw new Error('MINIMAX_API_KEY not configured');
+    }
+    
     const miniMax = new MiniMaxClient(this.env.MINIMAX_API_KEY);
     const botToken = this.env.DISCORD_BOT_TOKEN;
 
     // RESEARCH
     const research = await step.do('research', async () => {
-      await postToThread(threadId, '**RESEARCH** - Searching the web...', botToken);
+      await postToChannel(channels.research, '**RESEARCH** - Searching the web...', botToken);
       let data: string;
 
-      if (this.env.EXA_API_KEY) {
-        const results = await searchWeb(`${topic} latest news, trends, insights, statistics`, this.env.EXA_API_KEY);
-        const summary = await summarizeSearchResults(results);
-        data = await miniMax.chatWithRetry([{
-          role: 'user',
-          content: RESEARCH_WITH_EXA_PROMPT.replace('{summary}', summary).replace('{topic}', topic),
-        }], { maxTokens: 2048 });
-      } else {
-        data = await miniMax.chatWithRetry([{
-          role: 'user',
-          content: RESEARCH_PROMPT.replace('{topic}', topic),
-        }], { maxTokens: 2048 });
+      try {
+        if (this.env.EXA_API_KEY) {
+          const results = await searchWeb(`${topic} latest news, trends, insights, statistics`, this.env.EXA_API_KEY);
+          const summary = await summarizeSearchResults(results);
+          await postToChannel(channels.research, `**RESEARCH** - Got ${results.length} search results. Generating summary...`, botToken);
+          
+          await postToChannel(channels.research, `**RESEARCH** - Calling MiniMax AI...`, botToken);
+          data = await miniMax.chatWithRetry([{
+            role: 'user',
+            content: RESEARCH_WITH_EXA_PROMPT.replace('{summary}', summary).replace('{topic}', topic),
+          }], { maxTokens: 2048 });
+        } else {
+          await postToChannel(channels.research, '**RESEARCH** - No EXA_API_KEY, using MiniMax directly...', botToken);
+          data = await miniMax.chatWithRetry([{
+            role: 'user',
+            content: RESEARCH_PROMPT.replace('{topic}', topic),
+          }], { maxTokens: 2048 });
+        }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error('Research error:', errorMsg);
+        await postToChannel(channels.research, `❌ **RESEARCH ERROR**: ${errorMsg}`, botToken);
+        throw err;
       }
 
       if (this.env.CACHE) {
@@ -202,27 +220,27 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
       return data;
     });
-    await postToThread(threadId, `**RESEARCH**\n\n${research}`, botToken);
+    await postToChannel(channels.research, `**RESEARCH**\n\n${research}`, botToken);
 
     // DRAFT
-    const draft = await runAiStep(miniMax, 'draft', '**DRAFT** - Writing...', DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research), threadId, botToken);
-    await postToThread(threadId, `**DRAFT**\n\n${draft}`, botToken);
+    const draft = await runAiStep(miniMax, 'draft', '**DRAFT** - Writing...', DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research), channels.draft, botToken);
+    await postToChannel(channels.draft, `**DRAFT**\n\n${draft}`, botToken);
 
     // EDIT
-    const edited = await runAiStep(miniMax, 'edit', '**EDIT** - Reviewing...', EDIT_PROMPT.replace('{draft}', draft), threadId, botToken);
-    await postToThread(threadId, `**EDIT**\n\n${edited}`, botToken);
+    const edited = await runAiStep(miniMax, 'edit', '**EDIT** - Reviewing...', EDIT_PROMPT.replace('{draft}', draft), channels.edit, botToken);
+    await postToChannel(channels.edit, `**EDIT**\n\n${edited}`, botToken);
 
     // FINAL
-    const finalBlog = await runAiStep(miniMax, 'final', '**FINAL** - Polishing...', FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited), threadId, botToken);
-    await postToThread(threadId, `**FINAL**\n\n${finalBlog}`, botToken);
+    const finalBlog = await runAiStep(miniMax, 'final', '**FINAL** - Polishing...', FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited), channels.final, botToken);
+    await postToChannel(channels.final, `**FINAL**\n\n${finalBlog}`, botToken);
 
     // SOCIAL
-    const socialContent = await runAiStep(miniMax, 'social', '**SOCIAL** - Creating posts...', SOCIAL_PROMPT.replace('{blog}', finalBlog), threadId, botToken);
+    const socialContent = await runAiStep(miniMax, 'social', '**SOCIAL** - Creating posts...', SOCIAL_PROMPT.replace('{blog}', finalBlog), channels.social, botToken);
     const socialPosts = JSON.stringify(parseSocialPosts(socialContent));
-    await postToThread(threadId, `**SOCIAL**\n\n${socialPosts}`, botToken);
+    await postToChannel(channels.social, `**SOCIAL**\n\n${socialPosts}`, botToken);
 
-    // APPROVAL
-    await sendApprovalMessage(threadId, finalBlog, socialPosts, botToken);
+    // APPROVAL - in final channel
+    await sendApprovalMessage(channels.final, finalBlog, socialPosts, botToken);
     const { payload } = await step.waitForEvent<ApprovalPayload>('await-approval', {
       type: 'approval',
       timeout: '24 hours',
@@ -230,14 +248,14 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
     if (payload.approved) {
       await step.do('publish', async () => {
-        await postToThread(threadId, '**PUBLISHING** - Uploading to GitHub Pages...', botToken);
+        await postToChannel(channels.final, '**PUBLISHING** - Uploading to GitHub Pages...', botToken);
         const path = await publish(topic, finalBlog, socialPosts, this.env);
-        await postToThread(threadId, `Published to GitHub Pages: \`${path}\``, botToken);
+        await postToChannel(channels.final, `Published to GitHub Pages: \`${path}\``, botToken);
       });
     } else {
       // Revision loop
       const { finalBlog: revFinal, socialPosts: revSocial } = await runRevision(
-        topic, finalBlog, threadId, botToken, miniMax,
+        topic, finalBlog, channels, botToken, miniMax,
       );
 
       const { payload: p2 } = await step.waitForEvent<ApprovalPayload>('await-revision', {
@@ -247,12 +265,12 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
       if (p2.approved) {
         await step.do('revise-publish', async () => {
-          await postToThread(threadId, '**PUBLISHING** - Uploading to GitHub Pages...', botToken);
+          await postToChannel(channels.final, '**PUBLISHING** - Uploading to GitHub Pages...', botToken);
           const path = await publish(topic, revFinal, revSocial, this.env);
-          await postToThread(threadId, `Published to GitHub Pages: \`${path}\``, botToken);
+          await postToChannel(channels.final, `Published to GitHub Pages: \`${path}\``, botToken);
         });
       } else {
-        await postToThread(threadId, 'Workflow ended. Use `/create` to start over.', botToken);
+        await postToChannel(channels.final, 'Workflow ended. Use `/create` to start over.', botToken);
       }
     }
   }

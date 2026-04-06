@@ -8,5 +8,17 @@ export interface Env {
   GITHUB_TOKEN: string;
   GITHUB_REPO: string;
   EXA_API_KEY?: string;
-  DISCORD_CHANNEL_ID: string;
+  RESEARCH_CHANNEL_ID: string;
+  DRAFT_CHANNEL_ID: string;
+  EDIT_CHANNEL_ID: string;
+  FINAL_CHANNEL_ID: string;
+  SOCIAL_CHANNEL_ID: string;
+}
+
+export interface WorkflowChannels {
+  research: string;
+  draft: string;
+  edit: string;
+  final: string;
+  social: string;
 }

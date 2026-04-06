@@ -5,8 +5,9 @@ export interface MiniMaxMessage {
 
 export class MiniMaxClient {
   private apiKey: string;
-  private baseUrl = 'https://api.minimax.chat/v1';
-  private model = 'MiniMax-Text-01';
+  private baseUrl = 'https://api.minimax.io/v1';
+  // Token Plan uses MiniMax-M2.7-highspeed model
+  private model = 'MiniMax-M2.7-highspeed';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
