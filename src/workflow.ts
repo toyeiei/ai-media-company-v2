@@ -83,7 +83,7 @@ Topic: {topic}
 Edited draft:
 {edited}
 
-Create a clean, final version. **CRITICAL: The entire blog post must be between 150-160 characters only.**
+Create a clean, final version. **CRITICAL: The entire blog post must be between 150-180 words.**
 
 Return only the final polished blog post.`;
 
