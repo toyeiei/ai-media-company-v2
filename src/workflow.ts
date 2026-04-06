@@ -83,12 +83,7 @@ Topic: {topic}
 Edited draft:
 {edited}
 
-Create a clean, final version with:
-- Engaging title
-- Compelling introduction
-- Well-organized body
-- Strong conclusion
-- Proper formatting (use markdown)
+Create a clean, final version. **CRITICAL: The entire blog post must be between 150-160 characters only.**
 
 Return only the final polished blog post.`;
 
