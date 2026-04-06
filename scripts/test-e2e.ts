@@ -25,7 +25,7 @@ const RESEARCH_PROMPT = `Research the following topic thoroughly. Find key facts
 
 Topic: {topic}
 
-**CRITICAL: Keep the summary under 1600 characters and 250 words max. Be concise and focused.**`;
+**CRITICAL: Keep the summary to 150-200 words max. Be concise and focused.**`;
 
 const DRAFT_PROMPT = `You are a professional content writer. Write a blog post draft based on the following research.
 
@@ -33,19 +33,17 @@ Topic: {topic}
 Research:
 {research}
 
-**CRITICAL: Keep the draft around 200 words. Be thorough but stay within Discord message limits.**
+**CRITICAL: Write a draft of 180-220 words. Stay within Discord message limits (under 2000 characters).**
 
 Write a blog post with:
 - Engaging title
 - Introduction (2-3 sentences)
 - 3-4 key points with supporting details
-- Conclusion with call to action
-
-Aim for 200 words.`;
+- Conclusion with call to action`;
 
 const EDIT_PROMPT = `You are a senior editor. Review the draft below and provide 3-5 clear, actionable revision tips.
 
-**CRITICAL: Keep your tips under 1200 characters total. Be concise.**
+**CRITICAL: Keep your tips to 100-150 words max (under 1200 characters). Be concise.**
 
 Draft:
 {draft}
@@ -61,9 +59,9 @@ Original draft:
 Revision tips:
 {tips}
 
-**CRITICAL: Keep the blog post under 1600 characters and 300 words max. Apply the revision tips to improve the draft.**
+Apply the revision tips above to improve the draft. Return the final polished blog post only - no preamble, no explanation.
 
-Return only the final polished blog post.`;
+Length: 200-300 words.`;
 
 const FACEBOOK_PROMPT = `Convert this blog post into a Facebook post.
 

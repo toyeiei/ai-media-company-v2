@@ -22,7 +22,7 @@ const RESEARCH_PROMPT = `Research the following topic thoroughly. Find key facts
 
 Topic: {topic}
 
-**CRITICAL: Keep the summary under 1600 characters and 250 words max. Be concise and focused.**`;
+**CRITICAL: Keep the summary to 150-200 words max. Be concise and focused.**`;
 
 const RESEARCH_WITH_EXA_PROMPT = `You are a research analyst. Based on the following web search results, create a concise research summary for a blog post.
 
@@ -31,7 +31,7 @@ Search Results:
 
 Topic: {topic}
 
-**CRITICAL: Keep the summary under 1600 characters and 250 words max. Be concise and focused.**
+**CRITICAL: Keep the summary to 150-200 words max. Be concise and focused.**
 
 Provide:
 - Key findings (bullet list)
@@ -46,19 +46,17 @@ Topic: {topic}
 Research:
 {research}
 
-**CRITICAL: Keep the draft around 200 words. Be thorough but stay within Discord message limits.**
+**CRITICAL: Write a draft of 180-220 words. Stay within Discord message limits (under 2000 characters).**
 
 Write a blog post with:
 - Engaging title
 - Introduction (2-3 sentences)
 - 3-4 key points with supporting details
-- Conclusion with call to action
-
-Aim for 200 words.`;
+- Conclusion with call to action`;
 
 const EDIT_PROMPT = `You are a senior editor. Review the draft below and provide 3-5 clear, actionable revision tips.
 
-**CRITICAL: Keep your tips under 1200 characters total. Be concise.**
+**CRITICAL: Keep your tips to 100-150 words max (under 1200 characters). Be concise.**
 
 Draft:
 {draft}
@@ -74,9 +72,9 @@ Original draft:
 Revision tips:
 {tips}
 
-**CRITICAL: Keep the blog post under 1600 characters and 300 words max. Apply the revision tips to improve the draft.**
+Apply the revision tips above to improve the draft. Return the final polished blog post only - no preamble, no explanation.
 
-Return only the final polished blog post.`;
+Length: 200-300 words.`;
 
 const FACEBOOK_PROMPT = `Convert this blog post into a Facebook post.
 
@@ -175,26 +173,42 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     // FINAL
     const finalBlog = await step.do('final', async () => {
       await postToChannel(channels.final, '✨ **Final Phase** - Polishing...', botToken);
-      return await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{draft}', draft).replace('{tips}', edited) }], { maxTokens: 1600 });
+      const result = await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{draft}', draft).replace('{tips}', edited) }], { maxTokens: 2000 });
+      if (!result || result.trim().length === 0) {
+        throw new Error('Final phase returned empty content');
+      }
+      return result;
     });
     await postToChannel(channels.final, `✅ **Final Phase Complete**\n\n${finalBlog}\n\n_Word count: ${finalBlog.split(' ').filter(Boolean).length} | Characters: ~${finalBlog.length}_`, botToken);
 
     // SOCIAL
     const facebook = await step.do('social-facebook', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating Facebook post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: FACEBOOK_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
+      const result = await miniMax.chat([{ role: 'user', content: FACEBOOK_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
+      if (!result || result.trim().length === 0) {
+        throw new Error('Facebook returned empty content');
+      }
+      return result;
     });
     await postToChannel(channels.social, `✅ **Facebook**\n${facebook}\n\n_Word count: ${facebook.split(' ').filter(Boolean).length} | Characters: ~${facebook.length}_`, botToken);
 
     const twitter = await step.do('social-twitter', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating X/Twitter post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: TWITTER_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
+      const result = await miniMax.chat([{ role: 'user', content: TWITTER_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
+      if (!result || result.trim().length === 0) {
+        throw new Error('X/Twitter returned empty content');
+      }
+      return result;
     });
     await postToChannel(channels.social, `✅ **X/Twitter**\n${twitter}\n\n_Word count: ${twitter.split(' ').filter(Boolean).length} | Characters: ~${twitter.length}_`, botToken);
 
     const linkedin = await step.do('social-linkedin', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating LinkedIn post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: LINKEDIN_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1500 });
+      const result = await miniMax.chat([{ role: 'user', content: LINKEDIN_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1500 });
+      if (!result || result.trim().length === 0) {
+        throw new Error('LinkedIn returned empty content');
+      }
+      return result;
     });
     await postToChannel(channels.social, `✅ **LinkedIn**\n${linkedin}\n\n_Word count: ${linkedin.split(' ').filter(Boolean).length} | Characters: ~${linkedin.length}_`, botToken);
     
