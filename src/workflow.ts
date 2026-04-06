@@ -164,19 +164,19 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     // SOCIAL
     const facebook = await step.do('social-facebook', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating Facebook post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: FACEBOOK_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 320 });
+      return await miniMax.chat([{ role: 'user', content: FACEBOOK_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 500 });
     });
     await postToChannel(channels.social, `✅ **Facebook**\n${facebook}`, botToken);
 
     const twitter = await step.do('social-twitter', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating X/Twitter post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: TWITTER_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 280 });
+      return await miniMax.chat([{ role: 'user', content: TWITTER_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 400 });
     });
     await postToChannel(channels.social, `✅ **X/Twitter**\n${twitter}`, botToken);
 
     const linkedin = await step.do('social-linkedin', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating LinkedIn post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: LINKEDIN_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 900 });
+      return await miniMax.chat([{ role: 'user', content: LINKEDIN_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
     });
     await postToChannel(channels.social, `✅ **LinkedIn**\n${linkedin}`, botToken);
     
