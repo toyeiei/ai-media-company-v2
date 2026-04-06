@@ -40,20 +40,21 @@ const RESEARCH_PROMPT = `Research the following topic thoroughly. Find key facts
 
 Topic: {topic}`;
 
-const RESEARCH_WITH_EXA_PROMPT = `You are a research analyst. Based on the following web search results, provide a comprehensive research summary for a blog post.
+const RESEARCH_WITH_EXA_PROMPT = `You are a research analyst. Based on the following web search results, create a concise research summary for a blog post.
 
 Search Results:
 {summary}
 
 Topic: {topic}
 
-Create a structured research summary with:
-- Key findings and statistics
-- Recent developments and trends
-- Interesting angles and perspectives
-- Potential points to cover in the blog
+**CRITICAL: Keep the summary under 1900 characters. Be concise and focused.**
 
-Format with clear sections.`;
+Provide:
+- Key findings (bullet list)
+- Top 3-5 points to cover in the blog
+- Any important statistics or facts
+
+Use bullet points and keep it brief.`;
 
 const DRAFT_PROMPT = `You are a professional content writer. Write a blog post draft based on the following research.
 
