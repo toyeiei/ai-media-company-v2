@@ -70,9 +70,15 @@ Topic: {topic}
 Research:
 {research}
 
-**CRITICAL: Keep the draft under 1600 characters and 300 words max. Be concise and focused.**
+**CRITICAL: Keep the draft UNDER 1600 characters. No exceptions. This must fit in a single Discord message.**
 
-Write a compelling, well-structured blog post draft with an engaging title, introduction, main body with 3-5 key points, and a conclusion.`;
+Write a concise blog post with:
+- Engaging title
+- Short intro (1-2 sentences)
+- 2-3 key points
+- Brief conclusion
+
+Be extremely concise.`;
 
 const EDIT_PROMPT = `You are a senior editor. Review the draft below and provide 3-5 clear, actionable revision tips.
 
@@ -216,7 +222,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
     // DRAFT - NO RETRIES, runs once
     await postToChannel(channels.draft, '✍️ **Draft Phase** - Writing...', botToken);
-    const draft = await miniMax.chat([{ role: 'user', content: DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 1600 });
+    const draft = await miniMax.chat([{ role: 'user', content: DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 1550 });
     await postToChannel(channels.draft, `✅ **Draft Phase Complete**\n\n${draft}`, botToken);
 
     // EDIT - NO RETRIES, runs once
