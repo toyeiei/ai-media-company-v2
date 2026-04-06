@@ -83,7 +83,7 @@ const FACEBOOK_PROMPT = `Convert this blog post into a Facebook post.
 Requirements:
 - Tone: Conversational, friendly, engaging
 - Include: An emoji or two and a call to action
-- Length: 150-300 characters
+- Length: 600-800 characters
 
 Blog post:
 {blog}`;
@@ -93,7 +93,7 @@ const TWITTER_PROMPT = `Convert this blog post into an X/Twitter post.
 Requirements:
 - Tone: Bold, punchy, concise
 - Include: Trending language or hashtags if appropriate
-- Length: 100-280 characters
+- Length: 600-800 characters
 
 Blog post:
 {blog}`;
@@ -103,7 +103,7 @@ const LINKEDIN_PROMPT = `Convert this blog post into a LinkedIn post.
 Requirements:
 - Tone: Professional, insightful, authoritative
 - Include: A key takeaway or perspective
-- Length: 300-800 characters
+- Length: 800-1200 characters
 
 Blog post:
 {blog}`;
@@ -156,47 +156,47 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       const key = `research:${topic.toLowerCase().replace(/\s+/g, '-')}`;
       await this.env.CACHE.put(key, research, { expirationTtl: 86400 });
     }
-    await postToChannel(channels.research, `✅ **Research Phase Complete**\n\n${research}`, botToken);
+    await postToChannel(channels.research, `✅ **Research Phase Complete**\n\n${research}\n\n_Word count: ${research.split(' ').filter(Boolean).length} | Characters: ~${research.length}_`, botToken);
 
     // DRAFT
     const draft = await step.do('draft', async () => {
       await postToChannel(channels.draft, '✍️ **Draft Phase** - Writing...', botToken);
       return await miniMax.chat([{ role: 'user', content: DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 2000 });
     });
-    await postToChannel(channels.draft, `✅ **Draft Phase Complete**\n\n${draft}`, botToken);
+    await postToChannel(channels.draft, `✅ **Draft Phase Complete**\n\n${draft}\n\n_Word count: ${draft.split(' ').filter(Boolean).length} | Characters: ~${draft.length}_`, botToken);
 
     // EDIT
     const edited = await step.do('edit', async () => {
       await postToChannel(channels.edit, '🔍 **Edit Phase** - Reviewing...', botToken);
       return await miniMax.chat([{ role: 'user', content: EDIT_PROMPT.replace('{draft}', draft) }], { maxTokens: 1200 });
     });
-    await postToChannel(channels.edit, `✅ **Edit Phase Complete**\n\n${edited}`, botToken);
+    await postToChannel(channels.edit, `✅ **Edit Phase Complete**\n\n${edited}\n\n_Word count: ${edited.split(' ').filter(Boolean).length} | Characters: ~${edited.length}_`, botToken);
 
     // FINAL
     const finalBlog = await step.do('final', async () => {
       await postToChannel(channels.final, '✨ **Final Phase** - Polishing...', botToken);
       return await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{draft}', draft).replace('{tips}', edited) }], { maxTokens: 1600 });
     });
-    await postToChannel(channels.final, `✅ **Final Phase Complete**\n\n${finalBlog}`, botToken);
+    await postToChannel(channels.final, `✅ **Final Phase Complete**\n\n${finalBlog}\n\n_Word count: ${finalBlog.split(' ').filter(Boolean).length} | Characters: ~${finalBlog.length}_`, botToken);
 
     // SOCIAL
     const facebook = await step.do('social-facebook', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating Facebook post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: FACEBOOK_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 500 });
+      return await miniMax.chat([{ role: 'user', content: FACEBOOK_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
     });
-    await postToChannel(channels.social, `✅ **Facebook**\n${facebook}`, botToken);
+    await postToChannel(channels.social, `✅ **Facebook**\n${facebook}\n\n_Word count: ${facebook.split(' ').filter(Boolean).length} | Characters: ~${facebook.length}_`, botToken);
 
     const twitter = await step.do('social-twitter', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating X/Twitter post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: TWITTER_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 500 });
+      return await miniMax.chat([{ role: 'user', content: TWITTER_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
     });
-    await postToChannel(channels.social, `✅ **X/Twitter**\n${twitter}`, botToken);
+    await postToChannel(channels.social, `✅ **X/Twitter**\n${twitter}\n\n_Word count: ${twitter.split(' ').filter(Boolean).length} | Characters: ~${twitter.length}_`, botToken);
 
     const linkedin = await step.do('social-linkedin', async () => {
       await postToChannel(channels.social, '📱 **Social Phase** - Creating LinkedIn post...', botToken);
-      return await miniMax.chat([{ role: 'user', content: LINKEDIN_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
+      return await miniMax.chat([{ role: 'user', content: LINKEDIN_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1500 });
     });
-    await postToChannel(channels.social, `✅ **LinkedIn**\n${linkedin}`, botToken);
+    await postToChannel(channels.social, `✅ **LinkedIn**\n${linkedin}\n\n_Word count: ${linkedin.split(' ').filter(Boolean).length} | Characters: ~${linkedin.length}_`, botToken);
     
     await postToChannel(channels.social, '✅ **Social Phase Complete**', botToken);
   }

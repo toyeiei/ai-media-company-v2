@@ -70,7 +70,7 @@ const FACEBOOK_PROMPT = `Convert this blog post into a Facebook post.
 Requirements:
 - Tone: Conversational, friendly, engaging
 - Include: An emoji or two and a call to action
-- Length: 150-300 characters
+- Length: 600-800 characters
 
 Blog post:
 {blog}`;
@@ -80,7 +80,7 @@ const TWITTER_PROMPT = `Convert this blog post into an X/Twitter post.
 Requirements:
 - Tone: Bold, punchy, concise
 - Include: Trending language or hashtags if appropriate
-- Length: 100-280 characters
+- Length: 600-800 characters
 
 Blog post:
 {blog}`;
@@ -90,7 +90,7 @@ const LINKEDIN_PROMPT = `Convert this blog post into a LinkedIn post.
 Requirements:
 - Tone: Professional, insightful, authoritative
 - Include: A key takeaway or perspective
-- Length: 300-800 characters
+- Length: 800-1200 characters
 
 Blog post:
 {blog}`;
@@ -206,7 +206,7 @@ async function runE2ETest(): Promise<void> {
     const facebook = await miniMax.chat([{
       role: 'user',
       content: FACEBOOK_PROMPT.replace('{blog}', finalBlog),
-    }], { maxTokens: 500 });
+    }], { maxTokens: 1000 });
     
     assertNotEmpty(facebook, 'Facebook');
     socialResults.push({ step: 'Facebook', passed: true, duration: Date.now() - fbStart, output: facebook });
@@ -223,7 +223,7 @@ async function runE2ETest(): Promise<void> {
     const twitter = await miniMax.chat([{
       role: 'user',
       content: TWITTER_PROMPT.replace('{blog}', finalBlog),
-    }], { maxTokens: 500 });
+    }], { maxTokens: 1000 });
     
     assertNotEmpty(twitter, 'X/Twitter');
     socialResults.push({ step: 'X/Twitter', passed: true, duration: Date.now() - twStart, output: twitter });
@@ -240,7 +240,7 @@ async function runE2ETest(): Promise<void> {
     const linkedin = await miniMax.chat([{
       role: 'user',
       content: LINKEDIN_PROMPT.replace('{blog}', finalBlog),
-    }], { maxTokens: 1000 });
+    }], { maxTokens: 1500 });
     
     assertNotEmpty(linkedin, 'LinkedIn');
     socialResults.push({ step: 'LinkedIn', passed: true, duration: Date.now() - liStart, output: linkedin });
