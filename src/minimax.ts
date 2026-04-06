@@ -25,27 +25,17 @@ export class MiniMaxClient {
         signal: controller.signal,
       });
 
-      if (!res.ok) throw new Error(`MiniMax API error: ${res.status} - ${await res.text()}`);
+      if (!res.ok) {
+throw new Error(`MiniMax API error: ${res.status} - ${await res.text()}`);
+}
 
       const data = await res.json() as { choices: Array<{ message: { content: string } }> };
-      if (!data.choices?.[0]) throw new Error('No response from MiniMax');
+      if (!data.choices?.[0]) {
+throw new Error('No response from MiniMax');
+}
       return data.choices[0].message.content;
     } finally {
       clearTimeout(timeout);
     }
-  }
-
-  async chatWithRetry(messages: MiniMaxMessage[], options: { temperature?: number; maxTokens?: number; retries?: number } = {}): Promise<string> {
-    const { retries = 3 } = options;
-    let last: Error | null = null;
-    for (let i = 0; i < retries; i++) {
-      try {
-        return await this.chat(messages, options);
-      } catch (err) {
-        last = err as Error;
-        if (i < retries - 1) await new Promise((r) => setTimeout(r, Math.pow(2, i) * 1000));
-      }
-    }
-    throw last;
   }
 }

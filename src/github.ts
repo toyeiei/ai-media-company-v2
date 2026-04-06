@@ -3,14 +3,18 @@ export class GitHubClient {
 
   async createFile(path: string, content: string, message: string): Promise<boolean> {
     const [owner, name] = this.repo.split('/');
-    if (!owner || !name) throw new Error(`Invalid repo: ${this.repo} (expected owner/repo)`);
+    if (!owner || !name) {
+throw new Error(`Invalid repo: ${this.repo} (expected owner/repo)`);
+}
 
     const url = `https://api.github.com/repos/${owner}/${name}/contents/${path}`;
     const encoded = btoa(unescape(encodeURIComponent(content)));
 
     const body: Record<string, unknown> = { message, content: encoded };
     const sha = await this.getSha(path);
-    if (sha) body.sha = sha;
+    if (sha) {
+body.sha = sha;
+}
 
     const res = await fetch(url, {
       method: 'PUT',
@@ -26,8 +30,12 @@ export class GitHubClient {
     const res = await fetch(`https://api.github.com/repos/${owner}/${name}/contents/${path}`, {
       headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
     });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+    if (res.status === 404) {
+return null;
+}
+    if (!res.ok) {
+throw new Error(`GitHub API error: ${res.status}`);
+}
     return (await res.json() as { sha?: string }).sha || null;
   }
 

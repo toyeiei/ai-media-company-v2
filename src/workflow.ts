@@ -1,8 +1,7 @@
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
 import { MiniMaxClient } from './minimax';
-import { GitHubClient, generateBlogMarkdown } from './github';
 import { searchWeb, summarizeSearchResults } from './exa';
-import { postToChannel, sendApprovalMessage } from './discord';
+import { postToChannel } from './discord';
 import type { Env, WorkflowChannels } from './env';
 
 // ---------------------------------------------------------------------------
@@ -13,10 +12,6 @@ export interface WorkflowParams {
   topic: string;
   userId: string;
   channels: WorkflowChannels;
-}
-
-export interface ApprovalPayload {
-  approved: boolean;
 }
 
 export function parseSocialPosts(
@@ -32,9 +27,15 @@ export function parseSocialPosts(
   const tw = clean.match(/(?:x\/twitter|twitter)[:\s]*\n?([\s\S]*?)(?=\n\s*linkedin|$)/i);
   const li = clean.match(/linkedin[:\s]*\n?([\s\S]*?)$/i);
   
-  if (fb) r.facebook = fb[1].trim();
-  if (tw) r.twitter = tw[1].trim();
-  if (li) r.linkedin = li[1].trim();
+  if (fb) {
+r.facebook = fb[1].trim();
+}
+  if (tw) {
+r.twitter = tw[1].trim();
+}
+  if (li) {
+r.linkedin = li[1].trim();
+}
   return r;
 }
 
@@ -119,61 +120,6 @@ Format exactly as:
 **LinkedIn:**
 [post]`;
 
-const REVISE_EDIT_PROMPT = `You are a senior editor. The following blog post was sent back for revisions. Please revise it, addressing any issues with clarity, accuracy, engagement, and completeness.
-
-Topic: {topic}
-Current version:
-{current}
-
-Provide an improved version.`;
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatDate(): string {
-  const iso = new Date().toISOString();
-  return iso ? iso.split('T')[0] : '2026-01-01';
-}
-
-async function publish(topic: string, finalBlog: string, socialPosts: string, env: Env): Promise<string> {
-  const github = new GitHubClient(env.GITHUB_TOKEN, env.GITHUB_REPO);
-  const slug = github.generateSlug(topic);
-  const path = `_posts/${formatDate()}-${slug}.md`;
-  const posts = typeof socialPosts === 'string' ? JSON.parse(socialPosts) : socialPosts;
-  const markdown = generateBlogMarkdown(topic, finalBlog, posts);
-  const ok = await github.createFile(path, markdown, `Publish: ${topic}`);
-  if (!ok) throw new Error('GitHub publish failed');
-  return path;
-}
-
-async function runRevision(
-  topic: string,
-  currentBlog: string,
-  channels: WorkflowChannels,
-  botToken: string,
-  miniMax: MiniMaxClient,
-): Promise<{ edited: string; finalBlog: string; socialPosts: string }> {
-  // Post progress OUTSIDE step.do() - NO RETRIES, runs once
-  await postToChannel(channels.edit, `🔍 **Edit Phase (Revised)** - Revising...`, botToken);
-  const edited = await miniMax.chat([{ role: 'user', content: REVISE_EDIT_PROMPT.replace('{topic}', topic).replace('{current}', currentBlog) }], { maxTokens: 1600 });
-
-  await postToChannel(channels.final, `✨ **Final Phase (Revised)** - Polishing...`, botToken);
-  const finalBlog = await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited) }], { maxTokens: 1600 });
-
-  await postToChannel(channels.social, `📱 **Social Phase (Revised)** - Updating...`, botToken);
-  const socialContent = await miniMax.chat([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1600 });
-  
-  const { facebook, twitter, linkedin } = parseSocialPosts(socialContent);
-  await postToChannel(channels.social, `✅ **Social Posts Updated**\n\n**Facebook:**\n${facebook}`, botToken);
-  await postToChannel(channels.social, `**X/Twitter:**\n${twitter}`, botToken);
-  await postToChannel(channels.social, `**LinkedIn:**\n${linkedin}`, botToken);
-  
-  const socialPosts = JSON.stringify({ facebook, twitter, linkedin });
-  await sendApprovalMessage(channels.final, finalBlog, socialPosts, botToken);
-  return { edited, finalBlog, socialPosts };
-}
-
 // ---------------------------------------------------------------------------
 // Workflow
 // ---------------------------------------------------------------------------
@@ -191,7 +137,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     const miniMax = new MiniMaxClient(this.env.MINIMAX_API_KEY);
     const botToken = this.env.DISCORD_BOT_TOKEN;
 
-    // RESEARCH - NO RETRIES, runs once
+    // RESEARCH
     await postToChannel(channels.research, '🔍 **Research Phase** - Searching the web...', botToken);
     
     let research: string;
@@ -202,16 +148,20 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       await postToChannel(channels.research, `🔍 **Research Phase** - Found ${results.length} results. Generating summary...`, botToken);
       
       const summary = await summarizeSearchResults(results);
-      research = await miniMax.chat([{
-        role: 'user',
-        content: RESEARCH_WITH_EXA_PROMPT.replace('{summary}', summary).replace('{topic}', topic),
-      }], { maxTokens: 1600 });
+      research = await step.do('research-summary', async () => {
+        return await miniMax.chat([{
+          role: 'user',
+          content: RESEARCH_WITH_EXA_PROMPT.replace('{summary}', summary).replace('{topic}', topic),
+        }], { maxTokens: 1600 });
+      });
     } else {
-      await postToChannel(channels.research, '🔍 **Research Phase** - No EXA_API_KEY, using MiniMax directly...', botToken);
-      research = await miniMax.chat([{
-        role: 'user',
-        content: RESEARCH_PROMPT.replace('{topic}', topic),
-      }], { maxTokens: 1600 });
+      research = await step.do('research-direct', async () => {
+        await postToChannel(channels.research, '🔍 **Research Phase** - No EXA_API_KEY, using MiniMax directly...', botToken);
+        return await miniMax.chat([{
+          role: 'user',
+          content: RESEARCH_PROMPT.replace('{topic}', topic),
+        }], { maxTokens: 1600 });
+      });
     }
     
     if (this.env.CACHE) {
@@ -220,24 +170,32 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     }
     await postToChannel(channels.research, `✅ **Research Phase Complete**\n\n${research}`, botToken);
 
-    // DRAFT - NO RETRIES, runs once
-    await postToChannel(channels.draft, '✍️ **Draft Phase** - Writing...', botToken);
-    const draft = await miniMax.chat([{ role: 'user', content: DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 1550 });
+    // DRAFT
+    const draft = await step.do('draft', async () => {
+      await postToChannel(channels.draft, '✍️ **Draft Phase** - Writing...', botToken);
+      return await miniMax.chat([{ role: 'user', content: DRAFT_PROMPT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 1550 });
+    });
     await postToChannel(channels.draft, `✅ **Draft Phase Complete**\n\n${draft}`, botToken);
 
-    // EDIT - NO RETRIES, runs once
-    await postToChannel(channels.edit, '🔍 **Edit Phase** - Reviewing...', botToken);
-    const edited = await miniMax.chat([{ role: 'user', content: EDIT_PROMPT.replace('{draft}', draft) }], { maxTokens: 1200 });
+    // EDIT
+    const edited = await step.do('edit', async () => {
+      await postToChannel(channels.edit, '🔍 **Edit Phase** - Reviewing...', botToken);
+      return await miniMax.chat([{ role: 'user', content: EDIT_PROMPT.replace('{draft}', draft) }], { maxTokens: 1200 });
+    });
     await postToChannel(channels.edit, `✅ **Edit Phase Complete**\n\n${edited}`, botToken);
 
-    // FINAL - NO RETRIES, runs once
-    await postToChannel(channels.final, '✨ **Final Phase** - Polishing...', botToken);
-    const finalBlog = await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited) }], { maxTokens: 1600 });
+    // FINAL
+    const finalBlog = await step.do('final', async () => {
+      await postToChannel(channels.final, '✨ **Final Phase** - Polishing...', botToken);
+      return await miniMax.chat([{ role: 'user', content: FINAL_PROMPT.replace('{topic}', topic).replace('{edited}', edited) }], { maxTokens: 1600 });
+    });
     await postToChannel(channels.final, `✅ **Final Phase Complete**\n\n${finalBlog}`, botToken);
 
-    // SOCIAL - NO RETRIES, runs once
-    await postToChannel(channels.social, '📱 **Social Phase** - Creating posts...', botToken);
-    const socialContent = await miniMax.chat([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1600 });
+    // SOCIAL
+    const socialContent = await step.do('social', async () => {
+      await postToChannel(channels.social, '📱 **Social Phase** - Creating posts...', botToken);
+      return await miniMax.chat([{ role: 'user', content: SOCIAL_PROMPT.replace('{blog}', finalBlog) }], { maxTokens: 1600 });
+    });
     
     const { facebook, twitter, linkedin } = parseSocialPosts(socialContent);
     
