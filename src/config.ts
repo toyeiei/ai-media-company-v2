@@ -106,7 +106,7 @@ Blog Post:
 Requirements:
 - Conversational, friendly tone
 - Include 1-2 emojis and a call to action
-- 150-300 characters
+- 350 characters max
 - Make it scannable and engaging for Facebook feed
 
 Return ONLY the Facebook post text.`,
