@@ -114,8 +114,8 @@ export async function findInstanceIdInThread(threadId: string, botToken: string)
   });
 
   if (!res.ok) {
-return null;
-}
+    return null;
+  }
 
   const messages = await res.json() as Array<{ content: string }>;
   const match = messages
@@ -123,6 +123,43 @@ return null;
     .find(Boolean);
 
   return match || null;
+}
+
+export async function postApprovalMessage(channelId: string, botToken: string, workflowId?: string): Promise<void> {
+  const components = [
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 3,
+          label: 'Approve',
+          custom_id: 'publish_approve',
+        },
+        {
+          type: 2,
+          style: 4,
+          label: 'Revise',
+          custom_id: 'publish_revise',
+        },
+      ],
+    },
+  ];
+
+  const body: Record<string, unknown> = {
+    content: '**Publish to GitHub Pages?**\n✅ Approve to publish | ❌ Revise to go back',
+    components,
+  };
+
+  if (workflowId) {
+    body.content = `**Publish to GitHub Pages?**\n✅ Approve to publish | ❌ Revise to go back\n\nWorkflow: \`${workflowId}\``;
+  }
+
+  await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bot ${botToken}` },
+    body: JSON.stringify(body),
+  });
 }
 
 

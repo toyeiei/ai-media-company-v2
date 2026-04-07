@@ -1,6 +1,6 @@
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
 import { MiniMaxClient } from './minimax';
-import { postToChannel } from './discord';
+import { postToChannel, postApprovalMessage } from './discord';
 import { searchWeb, summarizeSearchResults } from './exa';
 import { GitHubClient } from './github';
 import type { Env, WorkflowChannels } from './env';
@@ -99,7 +99,24 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     });
     await postToChannel(channels.social, `✅ **Facebook**\n${facebook}\n\n_Word count: ${countWords(facebook)} | Characters: ~${countCharacters(facebook)}_`, botToken);
 
-    await postToChannel(channels.social, '✅ **Social Phase Complete**', botToken);
+    await postToChannel(channels.final, '✅ **Social Phase Complete**\n\n⏳ **Awaiting Approval**\n\nClick **Approve** to publish to GitHub Pages or **Revise** to go back to editing.', botToken);
+
+    // Send approval buttons
+    await postApprovalMessage(channels.final, botToken);
+
+    // Wait for approval
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const approvalEvent = await step.waitForEvent<{ approved?: boolean }>('approval', {
+      type: 'approval',
+      timeout: 86400, // 24 hours
+    });
+
+    const approved = approvalEvent?.payload?.approved === true;
+
+    if (!approved) {
+      await postToChannel(channels.final, '❌ **Publish Cancelled**\n\nUse `/create` to start a new workflow.', botToken);
+      throw new Error('Publish cancelled by user');
+    }
 
     // PUBLISH
     await step.do('publish', async () => {

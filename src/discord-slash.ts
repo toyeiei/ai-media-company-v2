@@ -25,6 +25,8 @@ export class DiscordSlashHandler {
     switch (body.data?.custom_id) {
       case 'approve': return this.handleApprove(body);
       case 'revise': return this.handleRevise(body);
+      case 'publish_approve': return this.handlePublishApprove(body);
+      case 'publish_revise': return this.handlePublishRevise(body);
       default: return this.ephemeral('Unknown action');
     }
   }
@@ -96,6 +98,40 @@ export class DiscordSlashHandler {
       const instance = await this.env.CONTENT_WORKFLOW.get(instanceId);
       await instance.sendEvent({ type: 'approval', payload: { approved: false } });
       return { type: 7, data: { content: 'Revising... going back to EDIT.', components: [] } };
+    } catch {
+      return this.ephemeral('Workflow not found or already completed.');
+    }
+  }
+
+  private async handlePublishApprove(body: DiscordInteraction): Promise<{ type: number; data?: Record<string, unknown> }> {
+    const channelId = body.channel_id || '';
+    const instanceId = await findInstanceIdInThread(channelId, this.env.DISCORD_BOT_TOKEN);
+
+    if (!instanceId) {
+      return this.ephemeral('Could not find workflow instance. Make sure you are in the #final channel.');
+    }
+
+    try {
+      const instance = await this.env.CONTENT_WORKFLOW.get(instanceId);
+      await instance.sendEvent({ type: 'approval', payload: { approved: true } });
+      return { type: 7, data: { content: '✅ Approved! Publishing to GitHub Pages...', components: [] } };
+    } catch {
+      return this.ephemeral('Workflow not found or already completed.');
+    }
+  }
+
+  private async handlePublishRevise(body: DiscordInteraction): Promise<{ type: number; data?: Record<string, unknown> }> {
+    const channelId = body.channel_id || '';
+    const instanceId = await findInstanceIdInThread(channelId, this.env.DISCORD_BOT_TOKEN);
+
+    if (!instanceId) {
+      return this.ephemeral('Could not find workflow instance. Make sure you are in the #final channel.');
+    }
+
+    try {
+      const instance = await this.env.CONTENT_WORKFLOW.get(instanceId);
+      await instance.sendEvent({ type: 'approval', payload: { approved: false } });
+      return { type: 7, data: { content: '❌ Publish cancelled. Use /create to start a new workflow.', components: [] } };
     } catch {
       return this.ephemeral('Workflow not found or already completed.');
     }
