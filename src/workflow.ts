@@ -2,6 +2,7 @@ import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:work
 import { MiniMaxClient } from './minimax';
 import { postToChannel } from './discord';
 import { searchWeb, summarizeSearchResults } from './exa';
+import { GitHubClient } from './github';
 import type { Env, WorkflowChannels } from './env';
 import { PROMPTS, sanitizeTopic, countWords, countCharacters } from './config';
 
@@ -67,8 +68,8 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
     // EDIT
     const edited = await step.do('edit', async () => {
-      await postToChannel(channels.edit, '🔍 **Edit Phase** - Improving draft...', botToken);
-      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.EDIT.replace('{draft}', draft) }], { maxTokens: 2500 });
+      await postToChannel(channels.edit, '🔍 **Edit Phase** - Reviewing draft...', botToken);
+      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.EDIT.replace('{draft}', draft) }], { maxTokens: 1500 });
       if (!result || result.trim().length < 50) {
         throw new Error('Edit phase returned insufficient content');
       }
@@ -79,7 +80,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     // FINAL
     const finalBlog = await step.do('final', async () => {
       await postToChannel(channels.final, '✨ **Final Phase** - Polishing...', botToken);
-      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.FINAL.replace('{topic}', topic).replace('{draft}', edited).replace('{feedback}', '') }], { maxTokens: 2500 });
+      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.FINAL.replace('{topic}', topic).replace('{draft}', draft).replace('{feedback}', edited) }], { maxTokens: 2500 });
       if (!result || result.trim().length < 50) {
         throw new Error('Final phase returned insufficient content');
       }
@@ -99,5 +100,28 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     await postToChannel(channels.social, `✅ **Facebook**\n${facebook}\n\n_Word count: ${countWords(facebook)} | Characters: ~${countCharacters(facebook)}_`, botToken);
 
     await postToChannel(channels.social, '✅ **Social Phase Complete**', botToken);
+
+    // PUBLISH
+    await step.do('publish', async () => {
+      await postToChannel(channels.final, '🚀 **Publish Phase** - Pushing to GitHub Pages...', botToken);
+
+      if (!this.env.GITHUB_TOKEN || !this.env.GITHUB_REPO) {
+        throw new Error('GitHub not configured. Set GITHUB_TOKEN and GITHUB_REPO.');
+      }
+
+      const github = new GitHubClient(this.env.GITHUB_TOKEN, this.env.GITHUB_REPO);
+
+      // Generate excerpt (max 160 chars)
+      const excerpt = finalBlog.slice(0, 157).replace(/\n/g, ' ').trim() + '...';
+
+      // Extract title from blog post (first # heading)
+      const titleMatch = finalBlog.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1].trim() : topic;
+
+      const slug = await github.publishBlogPost(title, finalBlog, excerpt, topic, facebook);
+
+      await postToChannel(channels.final, `✅ **Published!**\n📝 Post: \`${slug}\`\n🔗 Check your GitHub Pages site.`, botToken);
+      return slug;
+    });
   }
 }

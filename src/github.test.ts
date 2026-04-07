@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { GitHubClient, generateBlogMarkdown } from './github';
+import { GitHubClient } from './github';
 
 describe('GitHubClient', () => {
   describe('generateSlug', () => {
@@ -18,11 +18,17 @@ describe('GitHubClient', () => {
     it('handles empty strings', () => {
       expect(new GitHubClient('t', 'o/r').generateSlug('')).toBe('');
     });
+
+    it('limits slug length to 60 chars', () => {
+      const longTitle = 'This is a very long title that should be trimmed because it exceeds sixty characters limit';
+      const slug = new GitHubClient('t', 'o/r').generateSlug(longTitle);
+      expect(slug.length).toBeLessThanOrEqual(60);
+    });
   });
 
   describe('createFile', () => {
     it('throws for invalid repo format', async () => {
-      await expect(new GitHubClient('t', 'invalid').createFile('p.md', 'c', 'm')).rejects.toThrow('Invalid repo');
+      expect(() => new GitHubClient('t', 'invalid')).toThrow('Invalid repo');
     });
 
     it('creates file successfully', async () => {
@@ -52,31 +58,22 @@ describe('GitHubClient', () => {
       await expect(client.createFile('p.md', 'c', 'm')).rejects.toThrow('GitHub API error: 403');
     });
   });
-});
 
-describe('generateBlogMarkdown', () => {
-  it('generates valid markdown with frontmatter', () => {
-    const md = generateBlogMarkdown('Test Title', 'Blog content.');
-    expect(md).toContain('---');
-    expect(md).toContain('title: "Test Title"');
-    expect(md).toContain('# Test Title');
-  });
-
-  it('includes social posts section when provided', () => {
-    const md = generateBlogMarkdown('Title', 'Content', {
-      facebook: 'FB post', twitter: 'Tweet', linkedin: 'LI post',
+  describe('generateBlogMarkdown', () => {
+    it('generates valid markdown with frontmatter', () => {
+      const client = new GitHubClient('t', 'o/r');
+      const md = client.generateBlogMarkdown('Test Title', 'Blog content.', 'Short excerpt', 'AI', 'FB post');
+      expect(md).toContain('---');
+      expect(md).toContain('title: "Test Title"');
+      expect(md).toContain('# Test Title');
+      expect(md).toContain('Short excerpt');
     });
-    expect(md).toContain('## Share This Post');
-    expect(md).toContain('**Facebook:** FB post');
-    expect(md).toContain('**X/Twitter:** Tweet');
-  });
 
-  it('omits social section when not provided', () => {
-    expect(generateBlogMarkdown('T', 'C')).not.toContain('Share This Post');
-  });
-
-  it('escapes quotes in title', () => {
-    const md = generateBlogMarkdown('Title with "quotes"', 'Content');
-    expect(md).toContain('title: "Title with "quotes""');
+    it('includes facebook share section', () => {
+      const client = new GitHubClient('t', 'o/r');
+      const md = client.generateBlogMarkdown('Title', 'Content', 'Excerpt', 'Topic', 'Check out our post!');
+      expect(md).toContain('## Share on Facebook');
+      expect(md).toContain('Check out our post!');
+    });
   });
 });

@@ -1,20 +1,31 @@
-export class GitHubClient {
-  constructor(private token: string, private repo: string) {}
-
-  async createFile(path: string, content: string, message: string): Promise<boolean> {
-    const [owner, name] = this.repo.split('/');
-    if (!owner || !name) {
-throw new Error(`Invalid repo: ${this.repo} (expected owner/repo)`);
+export interface BlogPost {
+  slug: string;
+  title: string;
+  date: string;
+  topic: string;
+  excerpt: string;
 }
 
-    const url = `https://api.github.com/repos/${owner}/${name}/contents/${path}`;
+export class GitHubClient {
+  private owner: string;
+  private name: string;
+
+  constructor(private token: string, private repo: string) {
+    [this.owner, this.name] = this.repo.split('/');
+    if (!this.owner || !this.name) {
+      throw new Error(`Invalid repo: ${this.repo} (expected owner/repo)`);
+    }
+  }
+
+  async createFile(path: string, content: string, message: string): Promise<boolean> {
+    const url = `https://api.github.com/repos/${this.owner}/${this.name}/contents/${path}`;
     const encoded = btoa(unescape(encodeURIComponent(content)));
 
     const body: Record<string, unknown> = { message, content: encoded };
     const sha = await this.getSha(path);
     if (sha) {
-body.sha = sha;
-}
+      body.sha = sha;
+    }
 
     const res = await fetch(url, {
       method: 'PUT',
@@ -26,36 +37,94 @@ body.sha = sha;
   }
 
   private async getSha(path: string): Promise<string | null> {
-    const [owner, name] = this.repo.split('/');
-    const res = await fetch(`https://api.github.com/repos/${owner}/${name}/contents/${path}`, {
+    const res = await fetch(`https://api.github.com/repos/${this.owner}/${this.name}/contents/${path}`, {
       headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
     });
     if (res.status === 404) {
-return null;
-}
+      return null;
+    }
     if (!res.ok) {
-throw new Error(`GitHub API error: ${res.status}`);
-}
+      throw new Error(`GitHub API error: ${res.status}`);
+    }
     return (await res.json() as { sha?: string }).sha || null;
   }
 
-  generateSlug(title: string): string {
-    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  }
-}
+  async publishBlogPost(title: string, content: string, excerpt: string, topic: string, facebook: string): Promise<string> {
+    const date = new Date().toISOString().split('T')[0];
+    const slug = `${date}-${this.generateSlug(title)}`;
+    const blogPath = `blog/${slug}.md`;
 
-export function generateBlogMarkdown(
-  title: string,
-  content: string,
-  socialPosts?: { facebook: string; twitter: string; linkedin: string },
-): string {
-  const date = new Date().toISOString().split('T')[0];
-  let md = `---\ntitle: "${title}"\ndate: ${date}\nexcerpt: "${title}"\n---\n\n# ${title}\n\n${content}`;
-  if (socialPosts) {
-    md += '\n\n---\n\n## Share This Post\n\n';
-    md += `**Facebook:** ${socialPosts.facebook}\n\n`;
-    md += `**X/Twitter:** ${socialPosts.twitter}\n\n`;
-    md += `**LinkedIn:** ${socialPosts.linkedin}\n`;
+    const markdown = this.generateBlogMarkdown(title, content, excerpt, topic, facebook);
+    const success = await this.createFile(blogPath, markdown, `Add blog post: ${title}`);
+    
+    if (!success) {
+      throw new Error(`Failed to create blog post file: ${blogPath}`);
+    }
+
+    // Update index.json
+    await this.updateBlogIndex({ slug, title, date, topic, excerpt });
+
+    return slug;
   }
-  return md;
+
+  private async updateBlogIndex(post: BlogPost): Promise<void> {
+    const indexPath = 'blog/index.json';
+    let posts: BlogPost[] = [];
+
+    // Fetch existing index
+    try {
+      const res = await fetch(`https://api.github.com/repos/${this.owner}/${this.name}/contents/${indexPath}`, {
+        headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      });
+      if (res.ok) {
+        const data = await res.json() as { content?: string };
+        if (data.content) {
+          const decoded = atob(data.content);
+          posts = JSON.parse(decoded);
+        }
+      }
+    } catch {
+      // Index doesn't exist yet, start with empty array
+    }
+
+    // Add new post
+    posts.push(post);
+
+    // Save updated index
+    const success = await this.createFile(indexPath, JSON.stringify(posts, null, 2), 'Update blog index');
+    if (!success) {
+      throw new Error('Failed to update blog index');
+    }
+  }
+
+  generateSlug(title: string): string {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+  }
+
+  generateBlogMarkdown(
+    title: string,
+    content: string,
+    excerpt: string,
+    topic: string,
+    facebook: string,
+  ): string {
+    const date = new Date().toISOString().split('T')[0];
+    return `---
+title: "${title}"
+date: ${date}
+topic: "${topic}"
+excerpt: "${excerpt}"
+---
+
+# ${title}
+
+${content}
+
+---
+
+## Share on Facebook
+
+${facebook}
+`;
+  }
 }

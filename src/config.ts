@@ -70,31 +70,38 @@ Requirements:
 
 Make it informative, engaging, and ready for publication.`,
 
-  EDIT: `You are a senior editor. Improve the following blog post draft.
+  EDIT: `You are a senior editor. Review the blog draft below and provide exactly 5 key improvement suggestions.
 
-Original Draft:
+Draft:
 {draft}
 
-Your task:
-1. Fix any grammar, spelling, or clarity issues
-2. Strengthen weak sentences or paragraphs
-3. Improve flow and transitions
-4. Ensure the tone is consistent and engaging
-5. Return the improved version in full
+Provide exactly 5 specific, actionable improvements. Focus on:
+- Clarity and readability
+- Engagement and tone
+- Structure and flow
+- Impact of key points
+- Call to action effectiveness
 
-Return ONLY the improved blog post, no explanations.`,
+Be direct and specific in your suggestions.`,
 
-  FINAL: `You are a professional content editor. Create a polished, publication-ready version of this blog post.
+  FINAL: `You are a professional content editor. Polish this blog post into a final, publication-ready version.
 
 Topic: {topic}
 
 Original Draft:
 {draft}
 
-Editor Feedback:
+Editor Improvement Points:
 {feedback}
 
-Apply the feedback to improve the draft. Return the final version only - no preamble or explanation.
+Apply these rules while polishing:
+1. Fix any grammar, spelling, or clarity issues
+2. Improve flow and transitions between paragraphs
+3. Ensure tone is consistent and engaging throughout
+4. Strengthen weak sentences and paragraphs
+5. Keep the core message and key points intact
+
+Return only the polished blog post - no preamble or explanation.
 
 Target: 300-450 words.`,
 
