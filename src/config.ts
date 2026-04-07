@@ -94,26 +94,6 @@ Requirements:
 
 Blog post:
 {blog}`,
-
-  TWITTER: `Convert this blog post into an X/Twitter post.
-
-Requirements:
-- Tone: Bold, punchy, concise
-- Include: Trending language or hashtags if appropriate
-- Length: 600-800 characters
-
-Blog post:
-{blog}`,
-
-  LINKEDIN: `Convert this blog post into a LinkedIn post.
-
-Requirements:
-- Tone: Professional, insightful, authoritative
-- Include: A key takeaway or perspective
-- Length: 800-1200 characters
-
-Blog post:
-{blog}`,
 } as const;
 
 // ---------------------------------------------------------------------------

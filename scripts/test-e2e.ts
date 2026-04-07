@@ -1,7 +1,7 @@
 /**
  * End-to-End Test Script for Content Pipeline
  * 
- * Tests the full workflow: Research → Draft → Edit → Final → Social (FB, X, LinkedIn)
+ * Tests the full workflow: Research → Draft → Edit → Final → Social (Facebook only)
  * Run: MINIMAX_API_KEY=xxx npx tsx scripts/test-e2e.ts
  */
 
@@ -69,26 +69,6 @@ Requirements:
 - Tone: Conversational, friendly, engaging
 - Include: An emoji or two and a call to action
 - Length: 600-800 characters
-
-Blog post:
-{blog}`;
-
-const TWITTER_PROMPT = `Convert this blog post into an X/Twitter post.
-
-Requirements:
-- Tone: Bold, punchy, concise
-- Include: Trending language or hashtags if appropriate
-- Length: 600-800 characters
-
-Blog post:
-{blog}`;
-
-const LINKEDIN_PROMPT = `Convert this blog post into a LinkedIn post.
-
-Requirements:
-- Tone: Professional, insightful, authoritative
-- Include: A key takeaway or perspective
-- Length: 800-1200 characters
 
 Blog post:
 {blog}`;
@@ -194,13 +174,13 @@ async function runE2ETest(): Promise<void> {
 
   const finalBlog = results.find(r => r.step === 'Final')?.output || '';
 
-  // Step 5: SOCIAL (3 separate calls)
+  // Step 5: SOCIAL (Facebook only)
   const socialResults: TestResult[] = [];
   
   // Facebook
   const fbStart = Date.now();
   try {
-    console.log('📱 Step 5a: SOCIAL - Facebook');
+    console.log('📱 Step 5: SOCIAL - Facebook');
     const facebook = await miniMax.chat([{
       role: 'user',
       content: FACEBOOK_PROMPT.replace('{blog}', finalBlog),
@@ -212,40 +192,6 @@ async function runE2ETest(): Promise<void> {
   } catch (e) {
     socialResults.push({ step: 'Facebook', passed: false, duration: Date.now() - fbStart, output: '', error: String(e) });
     console.log(`   ❌ Facebook failed: ${e}`);
-  }
-
-  // Twitter/X
-  const twStart = Date.now();
-  try {
-    console.log('📱 Step 5b: SOCIAL - X/Twitter');
-    const twitter = await miniMax.chat([{
-      role: 'user',
-      content: TWITTER_PROMPT.replace('{blog}', finalBlog),
-    }], { maxTokens: 1000 });
-    
-    assertNotEmpty(twitter, 'X/Twitter');
-    socialResults.push({ step: 'X/Twitter', passed: true, duration: Date.now() - twStart, output: twitter });
-    console.log(`   ✅ X/Twitter complete (${Date.now() - twStart}ms, ${twitter.length} chars)`);
-  } catch (e) {
-    socialResults.push({ step: 'X/Twitter', passed: false, duration: Date.now() - twStart, output: '', error: String(e) });
-    console.log(`   ❌ X/Twitter failed: ${e}`);
-  }
-
-  // LinkedIn
-  const liStart = Date.now();
-  try {
-    console.log('📱 Step 5c: SOCIAL - LinkedIn');
-    const linkedin = await miniMax.chat([{
-      role: 'user',
-      content: LINKEDIN_PROMPT.replace('{blog}', finalBlog),
-    }], { maxTokens: 1500 });
-    
-    assertNotEmpty(linkedin, 'LinkedIn');
-    socialResults.push({ step: 'LinkedIn', passed: true, duration: Date.now() - liStart, output: linkedin });
-    console.log(`   ✅ LinkedIn complete (${Date.now() - liStart}ms, ${linkedin.length} chars)`);
-  } catch (e) {
-    socialResults.push({ step: 'LinkedIn', passed: false, duration: Date.now() - liStart, output: '', error: String(e) });
-    console.log(`   ❌ LinkedIn failed: ${e}`);
   }
 
   // Summary

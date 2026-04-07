@@ -94,26 +94,6 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     });
     await postToChannel(channels.social, `✅ **Facebook**\n${facebook}\n\n_Word count: ${countWords(facebook)} | Characters: ~${countCharacters(facebook)}_`, botToken);
 
-    const twitter = await step.do('social-twitter', async () => {
-      await postToChannel(channels.social, '📱 **Social Phase** - Creating X/Twitter post...', botToken);
-      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.TWITTER.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
-      if (!result || result.trim().length === 0) {
-        throw new Error('X/Twitter returned empty content');
-      }
-      return result;
-    });
-    await postToChannel(channels.social, `✅ **X/Twitter**\n${twitter}\n\n_Word count: ${countWords(twitter)} | Characters: ~${countCharacters(twitter)}_`, botToken);
-
-    const linkedin = await step.do('social-linkedin', async () => {
-      await postToChannel(channels.social, '📱 **Social Phase** - Creating LinkedIn post...', botToken);
-      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.LINKEDIN.replace('{blog}', finalBlog) }], { maxTokens: 1500 });
-      if (!result || result.trim().length === 0) {
-        throw new Error('LinkedIn returned empty content');
-      }
-      return result;
-    });
-    await postToChannel(channels.social, `✅ **LinkedIn**\n${linkedin}\n\n_Word count: ${countWords(linkedin)} | Characters: ~${countCharacters(linkedin)}_`, botToken);
-
     await postToChannel(channels.social, '✅ **Social Phase Complete**', botToken);
   }
 }
