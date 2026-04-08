@@ -22,7 +22,6 @@ export interface WorkflowParams {
 
 export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
-    const instanceId = (event as { id?: string }).id || 'unknown';
     const { topic: rawTopic, channels } = event.payload;
     const topic = sanitizeTopic(rawTopic);
 
@@ -91,12 +90,13 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
     // APPROVAL - send message first, then wait outside step.do
     await postToChannel(channels.final, '⏳ **Awaiting Approval**\n\nClick **Approve** to publish to GitHub Pages or **Revise** to cancel.', botToken);
-    await postApprovalMessage(channels.final, botToken, instanceId);
+    await postApprovalMessage(channels.final, botToken, this.id);
 
     // Wait for approval event (outside step.do to avoid retries)
+    // Timeout: 24 hours in milliseconds
     const approvalEvent = await step.waitForEvent<{ approved?: boolean }>('approval', {
       type: 'approval',
-      timeout: 86400, // 24 hours
+      timeout: 86400000, // 24 hours in milliseconds
     });
 
     if (approvalEvent?.payload?.approved !== true) {
