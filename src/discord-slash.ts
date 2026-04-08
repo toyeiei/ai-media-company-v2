@@ -56,8 +56,9 @@ export class DiscordSlashHandler {
     const startMsg = `🚀 **New Workflow Started**\n📝 **Topic:** ${topic}\n🔖 **ID:** \`${instanceId}\``;
     await postToChannel(this.env.RESEARCH_CHANNEL_ID, startMsg, this.env.DISCORD_BOT_TOKEN);
 
-    // Post instance ID to research channel for tracking
+    // Post instance ID to both research and final channels for tracking
     await postInstanceId(this.env.RESEARCH_CHANNEL_ID, instanceId, this.env.DISCORD_BOT_TOKEN);
+    await postInstanceId(this.env.FINAL_CHANNEL_ID, instanceId, this.env.DISCORD_BOT_TOKEN);
 
     return { type: 4, data: { content: 'Workflow started! Check the pipeline channels: #research, #draft, #edit, #final, #social' } };
   }

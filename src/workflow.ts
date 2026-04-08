@@ -88,24 +88,11 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     });
     await postToChannel(channels.final, `✅ **Final Phase Complete**\n\n${finalBlog}\n\n_Word count: ${countWords(finalBlog)} | Characters: ~${countCharacters(finalBlog)}_`, botToken);
 
-    // SOCIAL
-    const facebook = await step.do('social-facebook', async () => {
-      await postToChannel(channels.social, '📱 **Social Phase** - Creating Facebook post...', botToken);
-      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.FACEBOOK.replace('{blog}', finalBlog) }], { maxTokens: 1000 });
-      if (!result || result.trim().length === 0) {
-        throw new Error('Facebook returned empty content');
-      }
-      return result;
-    });
-    await postToChannel(channels.social, `✅ **Facebook**\n${facebook}\n\n_Word count: ${countWords(facebook)} | Characters: ~${countCharacters(facebook)}_`, botToken);
-
-    await postToChannel(channels.final, '✅ **Social Phase Complete**\n\n⏳ **Awaiting Approval**\n\nClick **Approve** to publish to GitHub Pages or **Revise** to go back to editing.', botToken);
-
-    // Send approval buttons
+    // Await approval before publishing
+    await postToChannel(channels.final, '⏳ **Awaiting Approval**\n\nClick **Approve** to publish to GitHub Pages or **Revise** to cancel.', botToken);
     await postApprovalMessage(channels.final, botToken);
 
     // Wait for approval
-     
     const approvalEvent = await step.waitForEvent<{ approved?: boolean }>('approval', {
       type: 'approval',
       timeout: 86400, // 24 hours
@@ -137,10 +124,9 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       const titleMatch = finalBlog.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1].trim() : topic;
 
-      const slug = await github.publishBlogPost(title, finalBlog, excerpt, topic, facebook);
+      const slug = await github.publishBlogPost(title, finalBlog, excerpt, topic, '');
 
       await postToChannel(channels.final, `✅ **Published!**\n📝 Post: \`${slug}\`\n🔗 Check your GitHub Pages site.`, botToken);
-      return slug;
     });
 
     // Send to publish channel
