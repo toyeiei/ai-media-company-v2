@@ -1,4 +1,4 @@
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/TOY-BOX/ai-media-team/main';
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/toyeiei/discord-ai-content-team/main';
 const BLOG_PATH = 'blog';
 
 const converter = new showdown.Converter();
