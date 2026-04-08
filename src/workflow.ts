@@ -109,11 +109,11 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     const githubPagesUrl = 'https://toyeiei.github.io/discord-ai-content-team/';
 
     await step.do('publish', async () => {
-      await postToChannel(channels.final, '🚀 **Publish Phase** - Pushing to GitHub Pages...', botToken);
-
       if (!this.env.GITHUB_TOKEN || !this.env.GITHUB_REPO) {
         throw new Error('GitHub not configured. Set GITHUB_TOKEN and GITHUB_REPO.');
       }
+
+      await postToChannel(channels.final, '🚀 **Publish Phase** - Pushing to GitHub Pages...', botToken);
 
       const github = new GitHubClient(this.env.GITHUB_TOKEN, this.env.GITHUB_REPO);
 
