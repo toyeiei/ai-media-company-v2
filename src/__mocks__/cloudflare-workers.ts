@@ -14,6 +14,7 @@ export abstract class DurableObject {
 
 export abstract class WorkflowEntrypoint<T = unknown, P = unknown> {
   protected env: T;
+  public id: string = 'test-instance-id';
 
   constructor(ctx: unknown, env: T) {
     this.env = env;

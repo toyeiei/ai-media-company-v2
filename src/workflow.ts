@@ -90,7 +90,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
     // APPROVAL - send message first, then wait outside step.do
     await postToChannel(channels.final, '⏳ **Awaiting Approval**\n\nClick **Approve** to publish to GitHub Pages or **Revise** to cancel.', botToken);
-    await postApprovalMessage(channels.final, botToken, this.id);
+    await postApprovalMessage(channels.final, botToken, (this as unknown as { id: string }).id);
 
     // Wait for approval event (outside step.do to avoid retries)
     // Timeout: 24 hours in milliseconds

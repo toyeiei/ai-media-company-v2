@@ -136,7 +136,7 @@ describe('AIChatClient', () => {
       expect(globalThis.fetch).toHaveBeenCalledWith(
         'https://api.openai.com/v1/chat/completions',
         expect.objectContaining({
-          body: expect.stringContaining('"max_tokens":1024'),
+          body: expect.stringContaining('"max_completion_tokens":1024'),
         }),
       );
     });
