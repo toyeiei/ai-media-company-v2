@@ -55,7 +55,7 @@ export class AIChatClient {
         model: this.model,
         messages,
         temperature: options.temperature ?? 0.7,
-        max_tokens: options.maxTokens ?? 4096,
+        max_completion_tokens: options.maxTokens ?? 4096,
       };
 
       if (options.tools && options.tools.length > 0) {

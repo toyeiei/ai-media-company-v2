@@ -5,11 +5,11 @@
  * Run: TEST_TOPIC="your topic" npx tsx scripts/test-e2e.ts
  */
 
-import { MiniMaxClient } from '../src/minimax';
+import { AIChatClient } from '../src/minimax';
 import { PROMPTS } from '../src/config';
 
 const CONFIG = {
-  minimaxKey: process.env.MINIMAX_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY!,
   testTopic: process.env.TEST_TOPIC || 'The Future of AI in Content Creation 2026',
 };
 
@@ -38,19 +38,19 @@ async function runE2ETest(): Promise<void> {
   console.log('╚════════════════════════════════════════════════════════════╝');
   console.log(`\n📋 Test Topic: "${CONFIG.testTopic}"\n`);
 
-  if (!CONFIG.minimaxKey) {
-    console.error('❌ MINIMAX_API_KEY not set');
-    console.error('   Run: export MINIMAX_API_KEY=xxx && npx tsx scripts/test-e2e.ts');
+  if (!CONFIG.apiKey) {
+    console.error('❌ OPENAI_API_KEY not set');
+    console.error('   Run: export OPENAI_API_KEY=xxx && npx tsx scripts/test-e2e.ts');
     process.exit(1);
   }
 
-  const miniMax = new MiniMaxClient(CONFIG.minimaxKey);
+  const aiClient = new AIChatClient(CONFIG.apiKey);
 
   // Step 1: RESEARCH
   const researchStart = Date.now();
   try {
     console.log('🔍 Step 1: RESEARCH');
-    const research = await miniMax.chat([{
+    const research = await aiClient.chat([{
       role: 'user',
       content: PROMPTS.RESEARCH_FALLBACK.replace('{topic}', CONFIG.testTopic),
     }], { maxTokens: 2000 });
@@ -69,7 +69,7 @@ async function runE2ETest(): Promise<void> {
   const draftStart = Date.now();
   try {
     console.log('✍️  Step 2: DRAFT');
-    const draft = await miniMax.chat([{
+    const draft = await aiClient.chat([{
       role: 'user',
       content: PROMPTS.DRAFT.replace('{topic}', CONFIG.testTopic).replace('{research}', research),
     }], { maxTokens: 2500 });
@@ -88,7 +88,7 @@ async function runE2ETest(): Promise<void> {
   const editStart = Date.now();
   try {
     console.log('🔍 Step 3: EDIT');
-    const edited = await miniMax.chat([{
+    const edited = await aiClient.chat([{
       role: 'user',
       content: PROMPTS.EDIT.replace('{draft}', draft),
     }], { maxTokens: 2500 });
@@ -107,7 +107,7 @@ async function runE2ETest(): Promise<void> {
   const finalStart = Date.now();
   try {
     console.log('✨ Step 4: FINAL');
-    const finalBlog = await miniMax.chat([{
+    const finalBlog = await aiClient.chat([{
       role: 'user',
       content: PROMPTS.FINAL.replace('{topic}', CONFIG.testTopic).replace('{draft}', edited).replace('{feedback}', ''),
     }], { maxTokens: 2500 });
