@@ -1,5 +1,5 @@
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
-import { MiniMaxClient } from './minimax';
+import { AIChatClient } from './minimax';
 import { postToChannel, postApprovalMessage } from './discord';
 import { searchWeb, summarizeSearchResults } from './exa';
 import { GitHubClient } from './github';
@@ -30,7 +30,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       throw new Error('MINIMAX_API_KEY not configured');
     }
 
-    const miniMax = new MiniMaxClient(this.env.MINIMAX_API_KEY);
+    const aiClient = new AIChatClient(this.env.MINIMAX_API_KEY);
     const botToken = this.env.DISCORD_BOT_TOKEN;
 
     // RESEARCH
@@ -41,13 +41,13 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
         const results = await searchWeb(`${topic} latest news, trends, insights, statistics`, this.env.EXA_API_KEY);
         await postToChannel(channels.research, `Found ${results.length} search results. Generating summary...`, botToken);
         const summary = await summarizeSearchResults(results);
-        return await miniMax.chat([{
+        return await aiClient.chat([{
           role: 'user',
           content: PROMPTS.RESEARCH_WITH_EXA.replace('{summary}', summary).replace('{topic}', topic),
         }], { maxTokens: 1600 });
       }
       await postToChannel(channels.research, 'No EXA_API_KEY found. Using training knowledge...', botToken);
-      return await miniMax.chat([{
+      return await aiClient.chat([{
         role: 'user',
         content: PROMPTS.RESEARCH_FALLBACK.replace('{topic}', topic),
       }], { maxTokens: 1600 });
@@ -62,14 +62,14 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     // DRAFT
     const draft = await step.do('draft', async () => {
       await postToChannel(channels.draft, '✍️ **Draft Phase** - Writing...', botToken);
-      return await miniMax.chat([{ role: 'user', content: PROMPTS.DRAFT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 2000 });
+      return await aiClient.chat([{ role: 'user', content: PROMPTS.DRAFT.replace('{topic}', topic).replace('{research}', research) }], { maxTokens: 2000 });
     });
     await postToChannel(channels.draft, `✅ **Draft Phase Complete**\n\n${draft}\n\n_Word count: ${countWords(draft)} | Characters: ~${countCharacters(draft)}_`, botToken);
 
     // EDIT
     const edited = await step.do('edit', async () => {
       await postToChannel(channels.edit, '🔍 **Edit Phase** - Reviewing draft...', botToken);
-      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.EDIT.replace('{draft}', draft) }], { maxTokens: 1500 });
+      const result = await aiClient.chat([{ role: 'user', content: PROMPTS.EDIT.replace('{draft}', draft) }], { maxTokens: 1500 });
       if (!result || result.trim().length < 50) {
         throw new Error('Edit phase returned insufficient content');
       }
@@ -80,7 +80,7 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     // FINAL
     const finalBlog = await step.do('final', async () => {
       await postToChannel(channels.final, '✨ **Final Phase** - Polishing...', botToken);
-      const result = await miniMax.chat([{ role: 'user', content: PROMPTS.FINAL.replace('{topic}', topic).replace('{draft}', draft).replace('{feedback}', edited) }], { maxTokens: 2500 });
+      const result = await aiClient.chat([{ role: 'user', content: PROMPTS.FINAL.replace('{topic}', topic).replace('{draft}', draft).replace('{feedback}', edited) }], { maxTokens: 2500 });
       if (!result || result.trim().length < 50) {
         throw new Error('Final phase returned insufficient content');
       }

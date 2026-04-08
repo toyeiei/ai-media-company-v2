@@ -1,27 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MiniMaxClient } from './minimax';
+import { AIChatClient } from './minimax';
 
-describe('MiniMaxClient', () => {
+describe('AIChatClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('constructor', () => {
     it('should create a client with default settings', () => {
-      const client = new MiniMaxClient('test-api-key');
-
+      const client = new AIChatClient('test-api-key');
       expect(client).toBeDefined();
     });
 
-    it('should use MiniMax-M2.7 as default model', () => {
-      const client = new MiniMaxClient('test-api-key');
+    it('should use gpt-5.4-nano as default model', () => {
+      const client = new AIChatClient('test-api-key');
+      expect(client).toBeDefined();
+    });
+
+    it('should use custom model when provided', () => {
+      const client = new AIChatClient('test-api-key', 'gpt-4');
       expect(client).toBeDefined();
     });
   });
 
   describe('chat', () => {
     it('should throw error on API error', async () => {
-      const client = new MiniMaxClient('test-api-key');
+      const client = new AIChatClient('test-api-key');
 
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         ok: false,
@@ -31,11 +35,11 @@ describe('MiniMaxClient', () => {
 
       await expect(
         client.chat([{ role: 'user', content: 'Hello' }]),
-      ).rejects.toThrow('MiniMax API error: 401 - Unauthorized');
+      ).rejects.toThrow('AI API error: 401 - Unauthorized');
     });
 
     it('should throw error when no choices returned', async () => {
-      const client = new MiniMaxClient('test-api-key');
+      const client = new AIChatClient('test-api-key');
 
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
@@ -48,11 +52,11 @@ describe('MiniMaxClient', () => {
 
       await expect(
         client.chat([{ role: 'user', content: 'Hello' }]),
-      ).rejects.toThrow('No response from MiniMax');
+      ).rejects.toThrow('No response from AI');
     });
 
     it('should return content from successful response', async () => {
-      const client = new MiniMaxClient('test-api-key');
+      const client = new AIChatClient('test-api-key');
 
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
@@ -82,7 +86,7 @@ describe('MiniMaxClient', () => {
     });
 
     it('should use provided temperature', async () => {
-      const client = new MiniMaxClient('test-api-key');
+      const client = new AIChatClient('test-api-key');
 
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
@@ -101,7 +105,7 @@ describe('MiniMaxClient', () => {
       await client.chat([{ role: 'user', content: 'Hello' }], { temperature: 0.9 });
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://api.minimax.io/v1/text/chatcompletion_v2',
+        'https://api.openai.com/v1/chat/completions',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
@@ -111,7 +115,7 @@ describe('MiniMaxClient', () => {
     });
 
     it('should use provided maxTokens', async () => {
-      const client = new MiniMaxClient('test-api-key');
+      const client = new AIChatClient('test-api-key');
 
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
@@ -130,7 +134,7 @@ describe('MiniMaxClient', () => {
       await client.chat([{ role: 'user', content: 'Hello' }], { maxTokens: 1024 });
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://api.minimax.io/v1/text/chatcompletion_v2',
+        'https://api.openai.com/v1/chat/completions',
         expect.objectContaining({
           body: expect.stringContaining('"max_tokens":1024'),
         }),

@@ -20,7 +20,7 @@ describe('DiscordSlashHandler', () => {
       DRAFT_CHANNEL_ID: 'ch-draft',
       EDIT_CHANNEL_ID: 'ch-edit',
       FINAL_CHANNEL_ID: 'ch-final',
-      SOCIAL_CHANNEL_ID: 'ch-social',
+      PUBLISH_CHANNEL_ID: 'ch-publish',
       CONTENT_WORKFLOW: {
         create: vi.fn(),
         get: vi.fn(),
@@ -110,7 +110,7 @@ describe('DiscordSlashHandler', () => {
           draft: 'ch-draft',
           edit: 'ch-edit',
           final: 'ch-final',
-          social: 'ch-social',
+          publish: 'ch-publish',
         },
       },
     });

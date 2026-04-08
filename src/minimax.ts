@@ -1,4 +1,4 @@
-export interface MiniMaxMessage {
+export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
@@ -32,19 +32,19 @@ function isRetryableError(error: unknown): boolean {
   return false;
 }
 
-export class MiniMaxClient {
+export class AIChatClient {
   private apiKey: string;
   private baseUrl: string;
   private model: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, model = 'gpt-5.4-nano') {
     this.apiKey = apiKey;
-    this.baseUrl = 'https://api.minimax.io/v1';
-    this.model = 'MiniMax-M2.7-highspeed';
+    this.baseUrl = 'https://api.openai.com/v1';
+    this.model = model;
   }
 
   async chat(
-    messages: MiniMaxMessage[],
+    messages: AIMessage[],
     options: { temperature?: number; maxTokens?: number; tools?: ToolDefinition[] } = {},
   ): Promise<string> {
     const controller = new AbortController();
@@ -66,7 +66,7 @@ export class MiniMaxClient {
       }
 
       const makeRequest = async (): Promise<Response> => {
-        return fetch(`${this.baseUrl}/text/chatcompletion_v2`, {
+        return fetch(`${this.baseUrl}/chat/completions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.apiKey}` },
           body: JSON.stringify(requestBody),
@@ -82,7 +82,7 @@ export class MiniMaxClient {
       }
 
       if (!res.ok) {
-        throw new Error(`MiniMax API error: ${res.status} - ${await res.text()}`);
+        throw new Error(`AI API error: ${res.status} - ${await res.text()}`);
       }
 
       const data = await res.json() as {
@@ -97,7 +97,7 @@ export class MiniMaxClient {
       };
 
       if (!data.choices?.[0]) {
-        throw new Error('No response from MiniMax');
+        throw new Error('No response from AI');
       }
 
       const choice = data.choices[0].message;
@@ -113,7 +113,7 @@ export class MiniMaxClient {
       return choice.content ?? '';
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('MiniMax API request timed out');
+        throw new Error('AI API request timed out');
       }
       throw error;
     }
