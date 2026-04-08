@@ -42,7 +42,8 @@ cd ai-media-team
 # Set secrets
 wrangler secret put DISCORD_BOT_TOKEN
 wrangler secret put DISCORD_APP_ID
-wrangler secret put MINIMAX_API_KEY
+wrangler secret put DISCORD_PUBLIC_KEY
+wrangler secret put OPENAI_API_KEY
 wrangler secret put GITHUB_TOKEN
 wrangler secret put GITHUB_REPO
 wrangler secret put WORKFLOW_URL
@@ -97,7 +98,7 @@ Use slash commands in any channel:
 | `DISCORD_BOT_TOKEN` | Yes | Discord bot token |
 | `DISCORD_APP_ID` | Yes | Discord application ID |
 | `DISCORD_PUBLIC_KEY` | Yes | Discord application public key |
-| `MINIMAX_API_KEY` | Yes | MiniMax API key |
+| `OPENAI_API_KEY` | Yes | OpenAI API key |
 | `GITHUB_TOKEN` | Yes | GitHub personal access token |
 | `GITHUB_REPO` | Yes | GitHub repo (format: `owner/repo`) |
 | `WORKFLOW_URL` | Yes | Your Worker URL |

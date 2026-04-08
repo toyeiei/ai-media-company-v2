@@ -17,6 +17,16 @@ export class GitHubClient {
     }
   }
 
+  private get headers(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'ai-media-team-bot',
+    };
+  }
+
   async createFile(path: string, content: string, message: string): Promise<boolean> {
     const url = `https://api.github.com/repos/${this.owner}/${this.name}/contents/${path}`;
     const encoded = btoa(unescape(encodeURIComponent(content)));
@@ -29,22 +39,39 @@ export class GitHubClient {
 
     const res = await fetch(url, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      headers: this.headers,
       body: JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      const errorBody = await res.text();
+      let errorMsg = `GitHub API error: ${res.status}`;
+      if (res.status === 401) {
+        errorMsg = 'GitHub authentication failed. Check GITHUB_TOKEN is valid and not expired.';
+      } else if (res.status === 403) {
+        errorMsg = 'GitHub access forbidden. Ensure GITHUB_TOKEN has "repo" scope for private repos or public_repo scope for public repos.';
+      } else if (res.status === 404) {
+        errorMsg = `GitHub repo not found: ${this.owner}/${this.name}. Check GITHUB_REPO is correct.`;
+      }
+      throw new Error(`${errorMsg} - ${errorBody}`);
+    }
 
     return res.ok;
   }
 
   private async getSha(path: string): Promise<string | null> {
     const res = await fetch(`https://api.github.com/repos/${this.owner}/${this.name}/contents/${path}`, {
-      headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      headers: this.headers,
     });
     if (res.status === 404) {
       return null;
     }
     if (!res.ok) {
-      throw new Error(`GitHub API error: ${res.status}`);
+      const errorBody = await res.text();
+      if (res.status === 401) {
+        throw new Error(`GitHub authentication failed: ${res.status} - Check GITHUB_TOKEN is valid.`);
+      }
+      throw new Error(`GitHub API error: ${res.status} - ${errorBody}`);
     }
     return (await res.json() as { sha?: string }).sha || null;
   }
@@ -74,7 +101,7 @@ export class GitHubClient {
     // Fetch existing index
     try {
       const res = await fetch(`https://api.github.com/repos/${this.owner}/${this.name}/contents/${indexPath}`, {
-        headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+        headers: this.headers,
       });
       if (res.ok) {
         const data = await res.json() as { content?: string };

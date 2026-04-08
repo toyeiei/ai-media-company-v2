@@ -5,80 +5,108 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  background: #f5f5f5;
-  color: #333;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #FFFFFF;
+  color: #1A1A1A;
   line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 3rem 2rem;
-  text-align: center;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E5E5;
+  padding: 2.5rem 2rem;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
 }
 
 header p {
-  opacity: 0.9;
-  font-size: 1.1rem;
+  color: #666;
+  font-size: 0.95rem;
+  font-weight: 400;
 }
 
 main {
   max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  margin: 3rem auto;
+  padding: 0 2rem;
+  flex: 1;
 }
 
 .posts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 
 .post-card {
-  background: white;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
   padding: 1.5rem;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: border-color 0.2s, transform 0.2s;
 }
 
 .post-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  border-color: #2563EB;
+  transform: translateY(-2px);
 }
 
 .post-card h3 {
-  font-size: 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #222;
+  color: #1A1A1A;
+  line-height: 1.4;
 }
 
 .post-card .topic {
   display: inline-block;
-  background: #667eea;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  background: #2563EB;
+  color: #FFFFFF;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
   margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .post-card .excerpt {
   color: #666;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   margin-bottom: 0.75rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .post-card .date {
   color: #999;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  border-top: 1px solid #E5E5E5;
+  color: #666;
+  font-size: 0.875rem;
 }
 
 .loading {
@@ -125,56 +153,73 @@ main {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.4);
 }
 
 .modal-content {
   position: relative;
-  background: white;
-  border-radius: 16px;
+  background: #FFFFFF;
   width: 90%;
-  max-width: 800px;
+  max-width: 720px;
   max-height: 90vh;
   overflow-y: auto;
-  padding: 2rem;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  padding: 2.5rem;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.15);
 }
 
 .modal-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 1.25rem;
+  right: 1.25rem;
   background: none;
   border: none;
-  font-size: 2rem;
+  font-size: 1.5rem;
   cursor: pointer;
   color: #999;
   line-height: 1;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover {
-  color: #333;
+  color: #1A1A1A;
 }
 
 #modal-title {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
+  font-weight: 700;
   margin-bottom: 0.5rem;
-  color: #222;
+  color: #1A1A1A;
+  letter-spacing: -0.01em;
 }
 
 .modal-date {
   color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #E5E5E5;
 }
 
 #modal-text {
-  line-height: 1.8;
+  line-height: 1.75;
 }
 
 #modal-text h1, #modal-text h2, #modal-text h3 {
-  margin: 1.5rem 0 0.75rem;
-  color: #222;
+  margin: 2rem 0 1rem;
+  color: #1A1A1A;
+  font-weight: 600;
+}
+
+#modal-text h2 {
+  font-size: 1.25rem;
+}
+
+#modal-text h3 {
+  font-size: 1.1rem;
 }
 
 #modal-text p {
@@ -190,24 +235,24 @@ main {
 }
 
 #modal-text blockquote {
-  border-left: 4px solid #667eea;
+  border-left: 3px solid #2563EB;
   padding-left: 1rem;
-  margin: 1rem 0;
+  margin: 1.5rem 0;
   font-style: italic;
   color: #555;
 }
 
 #modal-text code {
-  background: #f4f4f4;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.9em;
+  background: #F4F4F4;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.875em;
 }
 
 #modal-text pre {
-  background: #f4f4f4;
+  background: #F4F4F4;
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow-x: auto;
   margin: 1rem 0;
 }
@@ -217,9 +262,24 @@ main {
   padding: 0;
 }
 
+@media (max-width: 900px) {
+  .posts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 600px) {
+  header {
+    padding: 1.5rem 1rem;
+  }
+
   header h1 {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
+  }
+
+  main {
+    margin: 2rem auto;
+    padding: 0 1rem;
   }
 
   .posts-grid {

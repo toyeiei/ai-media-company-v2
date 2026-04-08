@@ -53,7 +53,7 @@ describe('GitHubClient', () => {
 
     it('throws on non-404 API errors from getSha', async () => {
       const client = new GitHubClient('t', 'owner/repo');
-      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403, text: async () => 'Forbidden' });
 
       await expect(client.createFile('p.md', 'c', 'm')).rejects.toThrow('GitHub API error: 403');
     });
