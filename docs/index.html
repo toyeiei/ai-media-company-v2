@@ -7,42 +7,32 @@
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
 </head>
 <body>
-  <div class="scanlines"></div>
-  <div class="grid-bg"></div>
-
   <header>
     <div class="header-inner">
-      <div class="glitch-wrapper">
-        <h1 class="glitch" data-text="AI MEDIA TEAM">AI MEDIA TEAM</h1>
-      </div>
-      <p class="subtitle">// Automated content, human-crafted quality</p>
+      <h1>AI Media Team</h1>
+      <p>Automated content, human-crafted quality</p>
     </div>
   </header>
 
   <main>
     <div id="posts-container" class="posts-grid">
-      <div class="loading">INITIALIZING...</div>
+      <div class="loading">Loading...</div>
     </div>
   </main>
 
   <footer>
-    <p>BUILT BY <span class="highlight-cyan">TOY</span> & <span class="highlight-pink">DROID</span></p>
+    <p>Built by Toy & Droid</p>
   </footer>
 
   <!-- Modal -->
   <div id="modal" class="modal hidden">
     <div class="modal-backdrop"></div>
     <div class="modal-content">
-      <button class="modal-close" aria-label="Close">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
+      <button class="modal-close" aria-label="Close">&times;</button>
       <div id="modal-body">
         <h2 id="modal-title"></h2>
         <p id="modal-date" class="modal-date"></p>
