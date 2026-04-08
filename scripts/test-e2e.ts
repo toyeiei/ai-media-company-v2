@@ -1,8 +1,8 @@
 /**
  * End-to-End Test Script for Content Pipeline
  * 
- * Tests the full workflow: Research → Draft → Edit → Final → Social (Facebook only)
- * Run: npx tsx scripts/test-e2e.ts
+ * Tests the full workflow: Research → Draft → Edit → Final → [Publish]
+ * Run: TEST_TOPIC="your topic" npx tsx scripts/test-e2e.ts
  */
 
 import { MiniMaxClient } from '../src/minimax';
@@ -40,7 +40,7 @@ async function runE2ETest(): Promise<void> {
 
   if (!CONFIG.minimaxKey) {
     console.error('❌ MINIMAX_API_KEY not set');
-    console.error('   Run: MINIMAX_API_KEY=xxx npx tsx scripts/test-e2e.ts');
+    console.error('   Run: export MINIMAX_API_KEY=xxx && npx tsx scripts/test-e2e.ts');
     process.exit(1);
   }
 
@@ -120,41 +120,18 @@ async function runE2ETest(): Promise<void> {
     console.log(`   ❌ Final failed: ${e}`);
   }
 
-  const finalBlog = results.find(r => r.step === 'Final')?.output || '';
-
-  // Step 5: SOCIAL (Facebook only)
-  const socialResults: TestResult[] = [];
-  
-  const fbStart = Date.now();
-  try {
-    console.log('📱 Step 5: SOCIAL - Facebook');
-    const facebook = await miniMax.chat([{
-      role: 'user',
-      content: PROMPTS.FACEBOOK.replace('{blog}', finalBlog),
-    }], { maxTokens: 1000 });
-    
-    assertNotEmpty(facebook, 'Facebook');
-    socialResults.push({ step: 'Facebook', passed: true, duration: Date.now() - fbStart, output: facebook });
-    console.log(`   ✅ Facebook complete (${Date.now() - fbStart}ms, ${facebook.length} chars)`);
-  } catch (e) {
-    socialResults.push({ step: 'Facebook', passed: false, duration: Date.now() - fbStart, output: '', error: String(e) });
-    console.log(`   ❌ Facebook failed: ${e}`);
-  }
-
   // Summary
   console.log('\n' + '═'.repeat(60));
-  const allSteps = [...results, ...socialResults];
-  const passed = allSteps.filter(r => r.passed).length;
+  const passed = results.filter(r => r.passed).length;
   
-  console.log(`\n📊 Results: ${passed}/${allSteps.length} steps passed\n`);
+  console.log(`\n📊 Results: ${passed}/${results.length} steps passed\n`);
   
-  allSteps.forEach(r => {
+  results.forEach(r => {
     const status = r.passed ? '✅' : '❌';
-    const icon = r.step === 'Facebook' ? '  ' : '';
-    console.log(`${icon}${status} ${r.step}: ${r.duration}ms${r.error ? ` - ${r.error}` : ''}`);
+    console.log(`${status} ${r.step}: ${r.duration}ms${r.error ? ` - ${r.error}` : ''}`);
   });
 
-  if (passed === allSteps.length) {
+  if (passed === results.length) {
     console.log('\n🎉 ALL TESTS PASSED!\n');
     console.log('📝 Content Preview:');
     console.log('-'.repeat(40));
@@ -162,11 +139,6 @@ async function runE2ETest(): Promise<void> {
     if (final) {
       console.log(final.output.slice(0, 500) + (final.output.length > 500 ? '...' : ''));
     }
-    console.log('-'.repeat(40));
-    socialResults.forEach(r => {
-      console.log(`\n${r.step} (${r.output.length} chars):`);
-      console.log(r.output.slice(0, 200) + (r.output.length > 200 ? '...' : ''));
-    });
   } else {
     console.log('\n⚠️  SOME TESTS FAILED');
     process.exit(1);

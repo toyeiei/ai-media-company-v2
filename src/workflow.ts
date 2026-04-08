@@ -88,26 +88,20 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     });
     await postToChannel(channels.final, `✅ **Final Phase Complete**\n\n${finalBlog}\n\n_Word count: ${countWords(finalBlog)} | Characters: ~${countCharacters(finalBlog)}_`, botToken);
 
-    // APPROVAL - wrapped in step for Cloudflare Dashboard audit
-    const approvalResult = await step.do('approval', async () => {
-      await postToChannel(channels.final, '⏳ **Awaiting Approval**\n\nClick **Approve** to publish to GitHub Pages or **Revise** to cancel.', botToken);
-      await postApprovalMessage(channels.final, botToken);
+    // APPROVAL - send message first, then wait outside step.do
+    await postToChannel(channels.final, '⏳ **Awaiting Approval**\n\nClick **Approve** to publish to GitHub Pages or **Revise** to cancel.', botToken);
+    await postApprovalMessage(channels.final, botToken);
 
-      // Wait for approval event
-      const approvalEvent = await step.waitForEvent<{ approved?: boolean }>('approval', {
-        type: 'approval',
-        timeout: 86400, // 24 hours
-      });
-
-      const approved = approvalEvent?.payload?.approved === true;
-
-      if (!approved) {
-        await postToChannel(channels.final, '❌ **Publish Cancelled**\n\nUse `/create` to start a new workflow.', botToken);
-        throw new Error('Publish cancelled by user');
-      }
-
-      return { approved: true };
+    // Wait for approval event (outside step.do to avoid retries)
+    const approvalEvent = await step.waitForEvent<{ approved?: boolean }>('approval', {
+      type: 'approval',
+      timeout: 86400, // 24 hours
     });
+
+    if (approvalEvent?.payload?.approved !== true) {
+      await postToChannel(channels.final, '❌ **Publish Cancelled**\n\nUse `/create` to start a new workflow.', botToken);
+      throw new Error('Publish cancelled by user');
+    }
 
     // PUBLISH
     const githubPagesUrl = 'https://toyeiei.github.io/discord-ai-content-team/';
